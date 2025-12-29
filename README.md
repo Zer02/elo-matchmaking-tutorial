@@ -76,3 +76,5 @@ calculateBtn.addEventListener('click', () => {
   `;
 });
 ```
+
+<img width="917" height="605" alt="Image" src="https://github.com/user-attachments/assets/d43dd40a-4934-4812-b408-09c39f23aced" />
