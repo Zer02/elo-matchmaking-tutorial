@@ -6,12 +6,12 @@
   <title>Elo System Demo</title>
   <style>
     body { font-family: Arial, sans-serif; margin: 40px; }
-    input, button { margin: 5px; padding: 5px; }
+    input, button, select { margin: 5px; padding: 5px; }
     #results { margin-top: 20px; }
   </style>
 </head>
 <body>
-  <h1>Elo Rating Demo</h1>
+  <h1>Elo Rating Simulation</h1>
 
   <div>
     <label>Player A Rating: <input type="number" id="playerA" value="1500"></label><br>
@@ -22,10 +22,13 @@
         <option value="B">Player B</option>
       </select>
     </label><br>
-    <button id="calculate">Calculate New Ratings</button>
+    <button id="calculate">Simulate Match</button>
   </div>
 
-  <div id="results"></div>
+  <div id="results">
+    <h2>Leaderboard</h2>
+    <ul id="leaderboard"></ul>
+  </div>
 
   <script src="app.js"></script>
 </body>
