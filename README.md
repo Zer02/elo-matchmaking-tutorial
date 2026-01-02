@@ -195,7 +195,7 @@ Input fields update:
 
 The input fields now reflect the latest ratings, so you can track progress visually.
 
-<!-- 
+
 ### v.0.3 
 **Can you keep a tally of their wins and losses in a h2h (head to head)?**
 ```html

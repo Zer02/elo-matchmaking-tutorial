@@ -1,7 +1,7 @@
-// Initial player ratings
+// Initial player ratings and head-to-head stats
 let players = {
-  A: 1500,
-  B: 1500,
+  A: { rating: 1500, wins: 0, losses: 0 },
+  B: { rating: 1500, wins: 0, losses: 0 },
 };
 
 // Elo calculation function
@@ -17,17 +17,28 @@ const playerBInput = document.getElementById("playerB");
 const winnerSelect = document.getElementById("winner");
 const calculateBtn = document.getElementById("calculate");
 const leaderboard = document.getElementById("leaderboard");
+const h2hList = document.getElementById("h2h");
 
 // Function to update leaderboard
 function updateLeaderboard() {
   leaderboard.innerHTML = "";
   Object.entries(players)
-    .sort((a, b) => b[1] - a[1]) // sort descending by rating
-    .forEach(([player, rating]) => {
+    .sort((a, b) => b[1].rating - a[1].rating) // sort descending by rating
+    .forEach(([player, stats]) => {
       const li = document.createElement("li");
-      li.textContent = `Player ${player}: ${rating.toFixed(2)}`;
+      li.textContent = `Player ${player}: ${stats.rating.toFixed(2)}`;
       leaderboard.appendChild(li);
     });
+}
+
+// Function to update H2H stats
+function updateH2H() {
+  h2hList.innerHTML = "";
+  Object.entries(players).forEach(([player, stats]) => {
+    const li = document.createElement("li");
+    li.textContent = `Player ${player} - Wins: ${stats.wins}, Losses: ${stats.losses}`;
+    h2hList.appendChild(li);
+  });
 }
 
 // Event listener for button
@@ -38,20 +49,28 @@ calculateBtn.addEventListener("click", () => {
   const scoreA = winner === "A" ? 1 : 0;
   const scoreB = winner === "B" ? 1 : 0;
 
-  // Calculate new ratings and update players object
-  const newRatingA = calculateElo(players.A, players.B, scoreA);
-  const newRatingB = calculateElo(players.B, players.A, scoreB);
+  // Update Elo ratings
+  players.A.rating = calculateElo(players.A.rating, players.B.rating, scoreA);
+  players.B.rating = calculateElo(players.B.rating, players.A.rating, scoreB);
 
-  players.A = newRatingA;
-  players.B = newRatingB;
+  // Update H2H stats
+  if (winner === "A") {
+    players.A.wins += 1;
+    players.B.losses += 1;
+  } else {
+    players.B.wins += 1;
+    players.A.losses += 1;
+  }
 
   // Update input fields to show current ratings
-  playerAInput.value = players.A.toFixed(2);
-  playerBInput.value = players.B.toFixed(2);
+  playerAInput.value = players.A.rating.toFixed(2);
+  playerBInput.value = players.B.rating.toFixed(2);
 
-  // Update leaderboard
+  // Update leaderboard and H2H
   updateLeaderboard();
+  updateH2H();
 });
 
-// Initialize leaderboard
+// Initialize leaderboard and H2H
 updateLeaderboard();
+updateH2H();
