@@ -1,76 +1,112 @@
-// Initial player ratings and head-to-head stats
-let players = {
-  A: { rating: 1500, wins: 0, losses: 0 },
-  B: { rating: 1500, wins: 0, losses: 0 },
+// --- Initial League State ---
+const players = {
+  Alice: { rating: 1500, wins: 0, losses: 0 },
+  Bob: { rating: 1500, wins: 0, losses: 0 },
+  Carol: { rating: 1500, wins: 0, losses: 0 },
+  Dave: { rating: 1500, wins: 0, losses: 0 },
 };
 
-// Elo calculation function
-function calculateElo(playerRating, opponentRating, score, k = 32) {
-  const expectedScore =
-    1 / (1 + Math.pow(10, (opponentRating - playerRating) / 400));
-  return playerRating + k * (score - expectedScore);
+// Head-to-head tracker
+const h2h = {};
+
+// Initialize H2H matrix
+Object.keys(players).forEach((p1) => {
+  h2h[p1] = {};
+  Object.keys(players).forEach((p2) => {
+    if (p1 !== p2) h2h[p1][p2] = { wins: 0, losses: 0 };
+  });
+});
+
+// --- Elo Formula ---
+function calculateElo(rA, rB, scoreA, k = 32) {
+  const expectedA = 1 / (1 + Math.pow(10, (rB - rA) / 400));
+  return rA + k * (scoreA - expectedA);
 }
 
-// DOM elements
-const playerAInput = document.getElementById("playerA");
-const playerBInput = document.getElementById("playerB");
+// --- DOM ---
+const p1Select = document.getElementById("player1");
+const p2Select = document.getElementById("player2");
 const winnerSelect = document.getElementById("winner");
-const calculateBtn = document.getElementById("calculate");
-const leaderboard = document.getElementById("leaderboard");
-const h2hList = document.getElementById("h2h");
+const simulateBtn = document.getElementById("simulate");
+const leaderboardBody = document.getElementById("leaderboard");
+const h2hDiv = document.getElementById("h2h");
 
-// Function to update leaderboard
-function updateLeaderboard() {
-  leaderboard.innerHTML = "";
-  Object.entries(players)
-    .sort((a, b) => b[1].rating - a[1].rating) // sort descending by rating
-    .forEach(([player, stats]) => {
-      const li = document.createElement("li");
-      li.textContent = `Player ${player}: ${stats.rating.toFixed(2)}`;
-      leaderboard.appendChild(li);
-    });
-}
-
-// Function to update H2H stats
-function updateH2H() {
-  h2hList.innerHTML = "";
-  Object.entries(players).forEach(([player, stats]) => {
-    const li = document.createElement("li");
-    li.textContent = `Player ${player} - Wins: ${stats.wins}, Losses: ${stats.losses}`;
-    h2hList.appendChild(li);
+// Populate dropdowns
+function populateSelectors() {
+  [p1Select, p2Select, winnerSelect].forEach((sel) => (sel.innerHTML = ""));
+  Object.keys(players).forEach((name) => {
+    p1Select.add(new Option(name, name));
+    p2Select.add(new Option(name, name));
+    winnerSelect.add(new Option(name, name));
   });
 }
 
-// Event listener for button
-calculateBtn.addEventListener("click", () => {
+// --- UI Updates ---
+function updateLeaderboard() {
+  leaderboardBody.innerHTML = "";
+  Object.entries(players)
+    .sort((a, b) => b[1].rating - a[1].rating)
+    .forEach(([name, stats]) => {
+      leaderboardBody.innerHTML += `
+        <tr>
+          <td>${name}</td>
+          <td>${stats.rating.toFixed(1)}</td>
+          <td>${stats.wins}</td>
+          <td>${stats.losses}</td>
+        </tr>
+      `;
+    });
+}
+
+function updateH2H() {
+  h2hDiv.innerHTML = "";
+  Object.keys(h2h).forEach((p1) => {
+    Object.keys(h2h[p1]).forEach((p2) => {
+      const record = h2h[p1][p2];
+      if (record.wins + record.losses > 0) {
+        h2hDiv.innerHTML += `<p>${p1} vs ${p2}: ${record.wins}-${record.losses}</p>`;
+      }
+    });
+  });
+}
+
+// --- Match Simulation ---
+simulateBtn.addEventListener("click", () => {
+  const p1 = p1Select.value;
+  const p2 = p2Select.value;
   const winner = winnerSelect.value;
 
-  // Determine score: 1 for win, 0 for loss
-  const scoreA = winner === "A" ? 1 : 0;
-  const scoreB = winner === "B" ? 1 : 0;
+  if (p1 === p2) return alert("Players must be different");
+  if (![p1, p2].includes(winner))
+    return alert("Winner must be one of the players");
 
-  // Update Elo ratings
-  players.A.rating = calculateElo(players.A.rating, players.B.rating, scoreA);
-  players.B.rating = calculateElo(players.B.rating, players.A.rating, scoreB);
+  const score1 = winner === p1 ? 1 : 0;
+  const score2 = 1 - score1;
 
-  // Update H2H stats
-  if (winner === "A") {
-    players.A.wins += 1;
-    players.B.losses += 1;
+  const r1 = players[p1].rating;
+  const r2 = players[p2].rating;
+
+  players[p1].rating = calculateElo(r1, r2, score1);
+  players[p2].rating = calculateElo(r2, r1, score2);
+
+  // Update W/L
+  if (winner === p1) {
+    players[p1].wins++;
+    players[p2].losses++;
+    h2h[p1][p2].wins++;
+    h2h[p2][p1].losses++;
   } else {
-    players.B.wins += 1;
-    players.A.losses += 1;
+    players[p2].wins++;
+    players[p1].losses++;
+    h2h[p2][p1].wins++;
+    h2h[p1][p2].losses++;
   }
 
-  // Update input fields to show current ratings
-  playerAInput.value = players.A.rating.toFixed(2);
-  playerBInput.value = players.B.rating.toFixed(2);
-
-  // Update leaderboard and H2H
   updateLeaderboard();
   updateH2H();
 });
 
-// Initialize leaderboard and H2H
+// --- Init ---
+populateSelectors();
 updateLeaderboard();
 updateH2H();

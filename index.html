@@ -1,37 +1,48 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Elo System Demo</title>
+  <meta charset="UTF-8" />
+  <title>Elo League Simulator</title>
   <style>
     body { font-family: Arial, sans-serif; margin: 40px; }
-    input, button, select { margin: 5px; padding: 5px; }
-    #results { margin-top: 20px; }
+    select, button { margin: 5px; padding: 5px; }
+    h2 { margin-top: 30px; }
+    table { border-collapse: collapse; margin-top: 10px; }
+    th, td { border: 1px solid #ccc; padding: 6px 10px; text-align: center; }
   </style>
 </head>
 <body>
-  <h1>Elo Rating Simulation</h1>
+
+  <h1>Elo League Simulator</h1>
 
   <div>
-    <label>Player A Rating: <input type="number" id="playerA" value="1500"></label><br>
-    <label>Player B Rating: <input type="number" id="playerB" value="1500"></label><br>
-    <label>Winner: 
-      <select id="winner">
-        <option value="A">Player A</option>
-        <option value="B">Player B</option>
-      </select>
-    </label><br>
-    <button id="calculate">Simulate Match</button>
+    <label>Player 1:</label>
+    <select id="player1"></select>
+
+    <label>Player 2:</label>
+    <select id="player2"></select>
+
+    <label>Winner:</label>
+    <select id="winner"></select>
+
+    <button id="simulate">Simulate Match</button>
   </div>
 
-  <div id="results">
-    <h2>Leaderboard</h2>
-    <ul id="leaderboard"></ul>
+  <h2>Leaderboard</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Player</th>
+        <th>Elo</th>
+        <th>Wins</th>
+        <th>Losses</th>
+      </tr>
+    </thead>
+    <tbody id="leaderboard"></tbody>
+  </table>
 
-    <h2>Head-to-Head (H2H)</h2>
-    <ul id="h2h"></ul>
-  </div>
+  <h2>Head-to-Head</h2>
+  <div id="h2h"></div>
 
   <script src="app.js"></script>
 </body>
