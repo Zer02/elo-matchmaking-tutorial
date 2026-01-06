@@ -746,7 +746,6 @@ Say one of these and we proceed immediately:
 You’re building this exactly the right way.
 SPIN is already thinking like a system, not a script.
 
-<!--
 ### v.0.5
 **“SPIN v0.5” → match history (recommended)**
 
