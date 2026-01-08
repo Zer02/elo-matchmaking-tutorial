@@ -942,7 +942,7 @@ Say one:
 
 We’ll keep iterating slow, correct, inevitable.
 
-<!--
+
 ### v.0.6
 **Just give me a summary from now on for each version, and just give me the whole index.html and app.js files**
 

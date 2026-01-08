@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Elo League Simulator</title>
+  <title>SPIN v0.6</title>
   <style>
     body { font-family: Arial, sans-serif; margin: 40px; }
     select, button { margin: 5px; padding: 5px; }
@@ -13,7 +13,7 @@
 </head>
 <body>
 
-  <h1>Elo League Simulator</h1>
+  <h1>SPIN v0.6 — Dynamic K-Factor</h1>
 
   <div>
     <label>Player 1:</label>
@@ -36,6 +36,7 @@
         <th>Elo</th>
         <th>Wins</th>
         <th>Losses</th>
+        <th>Matches</th>
       </tr>
     </thead>
     <tbody id="leaderboard"></tbody>
@@ -43,6 +44,9 @@
 
   <h2>Head-to-Head</h2>
   <div id="h2h"></div>
+
+  <h2>Match History</h2>
+  <div id="matchHistory"></div>
 
   <script src="app.js"></script>
 </body>

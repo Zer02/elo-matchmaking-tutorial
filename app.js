@@ -1,15 +1,13 @@
-// --- Initial League State ---
+// --- Players ---
 const players = {
-  Alice: { rating: 1500, wins: 0, losses: 0 },
-  Bob: { rating: 1500, wins: 0, losses: 0 },
-  Carol: { rating: 1500, wins: 0, losses: 0 },
-  Dave: { rating: 1500, wins: 0, losses: 0 },
+  Alice: { rating: 1500, wins: 0, losses: 0, matches: 0 },
+  Bob: { rating: 1500, wins: 0, losses: 0, matches: 0 },
+  Carol: { rating: 1500, wins: 0, losses: 0, matches: 0 },
+  Dave: { rating: 1500, wins: 0, losses: 0, matches: 0 },
 };
 
-// Head-to-head tracker
+// --- Head-to-Head ---
 const h2h = {};
-
-// Initialize H2H matrix
 Object.keys(players).forEach((p1) => {
   h2h[p1] = {};
   Object.keys(players).forEach((p2) => {
@@ -17,10 +15,19 @@ Object.keys(players).forEach((p1) => {
   });
 });
 
-// --- Elo Formula ---
-function calculateElo(rA, rB, scoreA, k = 32) {
-  const expectedA = 1 / (1 + Math.pow(10, (rB - rA) / 400));
-  return rA + k * (scoreA - expectedA);
+// --- Match History ---
+const matches = [];
+let matchId = 1;
+
+// --- Dynamic K-Factor ---
+function getKFactor(player) {
+  return player.matches < 10 ? 40 : 20;
+}
+
+// --- Elo ---
+function calculateElo(rA, rB, scoreA, k) {
+  const expected = 1 / (1 + Math.pow(10, (rB - rA) / 400));
+  return rA + k * (scoreA - expected);
 }
 
 // --- DOM ---
@@ -30,10 +37,11 @@ const winnerSelect = document.getElementById("winner");
 const simulateBtn = document.getElementById("simulate");
 const leaderboardBody = document.getElementById("leaderboard");
 const h2hDiv = document.getElementById("h2h");
+const historyDiv = document.getElementById("matchHistory");
 
-// Populate dropdowns
+// --- Populate Selectors ---
 function populateSelectors() {
-  [p1Select, p2Select, winnerSelect].forEach((sel) => (sel.innerHTML = ""));
+  [p1Select, p2Select, winnerSelect].forEach((s) => (s.innerHTML = ""));
   Object.keys(players).forEach((name) => {
     p1Select.add(new Option(name, name));
     p2Select.add(new Option(name, name));
@@ -46,15 +54,15 @@ function updateLeaderboard() {
   leaderboardBody.innerHTML = "";
   Object.entries(players)
     .sort((a, b) => b[1].rating - a[1].rating)
-    .forEach(([name, stats]) => {
+    .forEach(([name, p]) => {
       leaderboardBody.innerHTML += `
         <tr>
           <td>${name}</td>
-          <td>${stats.rating.toFixed(1)}</td>
-          <td>${stats.wins}</td>
-          <td>${stats.losses}</td>
-        </tr>
-      `;
+          <td>${p.rating.toFixed(1)}</td>
+          <td>${p.wins}</td>
+          <td>${p.losses}</td>
+          <td>${p.matches}</td>
+        </tr>`;
     });
 }
 
@@ -62,15 +70,25 @@ function updateH2H() {
   h2hDiv.innerHTML = "";
   Object.keys(h2h).forEach((p1) => {
     Object.keys(h2h[p1]).forEach((p2) => {
-      const record = h2h[p1][p2];
-      if (record.wins + record.losses > 0) {
-        h2hDiv.innerHTML += `<p>${p1} vs ${p2}: ${record.wins}-${record.losses}</p>`;
+      const r = h2h[p1][p2];
+      if (r.wins + r.losses > 0) {
+        h2hDiv.innerHTML += `<p>${p1} vs ${p2}: ${r.wins}-${r.losses}</p>`;
       }
     });
   });
 }
 
-// --- Match Simulation ---
+function updateHistory() {
+  historyDiv.innerHTML = "";
+  matches
+    .slice()
+    .reverse()
+    .forEach((m) => {
+      historyDiv.innerHTML += `<div>#${m.id} ${m.player1} vs ${m.player2} → ${m.winner}</div>`;
+    });
+}
+
+// --- Simulation ---
 simulateBtn.addEventListener("click", () => {
   const p1 = p1Select.value;
   const p2 = p2Select.value;
@@ -83,13 +101,18 @@ simulateBtn.addEventListener("click", () => {
   const score1 = winner === p1 ? 1 : 0;
   const score2 = 1 - score1;
 
-  const r1 = players[p1].rating;
-  const r2 = players[p2].rating;
+  const k1 = getKFactor(players[p1]);
+  const k2 = getKFactor(players[p2]);
 
-  players[p1].rating = calculateElo(r1, r2, score1);
-  players[p2].rating = calculateElo(r2, r1, score2);
+  const r1Before = players[p1].rating;
+  const r2Before = players[p2].rating;
 
-  // Update W/L
+  players[p1].rating = calculateElo(r1Before, r2Before, score1, k1);
+  players[p2].rating = calculateElo(r2Before, r1Before, score2, k2);
+
+  players[p1].matches++;
+  players[p2].matches++;
+
   if (winner === p1) {
     players[p1].wins++;
     players[p2].losses++;
@@ -102,11 +125,20 @@ simulateBtn.addEventListener("click", () => {
     h2h[p1][p2].losses++;
   }
 
+  matches.push({
+    id: matchId++,
+    player1: p1,
+    player2: p2,
+    winner,
+  });
+
   updateLeaderboard();
   updateH2H();
+  updateHistory();
 });
 
 // --- Init ---
 populateSelectors();
 updateLeaderboard();
 updateH2H();
+updateHistory();
