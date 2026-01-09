@@ -1194,6 +1194,214 @@ v1.0 → SPIN MVP freeze
 
 SPIN is now behaving like a real competitive protocol.
 
+### v.0.6.1
+**Currently the matchmaking system seems to favor the most recent winner. Is this common with the Elo system? (e.g. Alice vs. Bob, 2 games, Alice wins first and ranked higher than Bob, but after second game where their h2h is 1-1, Bob's elo is 1502.3 and Alice is 1497.7) Shouldn't a fair system have them both be the same elo, especially since they both started at 1500? Is this the Elo system behaving as intended, or am I missing something?**
+
+This is a very good question, and you’re not missing anything.
+What you’re observing is exactly how Elo is designed to behave, and why Elo is not symmetric over short match sequences.
+
+Let’s break it down carefully, because this insight is foundational for SPIN.
+
+Short answer
+
+Yes — this is normal Elo behavior.
+Elo does favor the more recent winner in a short series, even if H2H is tied.
+
+And no — Elo is not designed to force equality just because win–loss is equal.
+
+Why this happens (step by step)
+
+Assume:
+
+Alice = 1500
+
+Bob = 1500
+
+K = constant
+
+No randomness
+
+Match 1 — Alice wins
+
+Expected score:
+
+Alice: 0.50
+
+Bob: 0.50
+
+Rating change:
+
+Alice → goes up
+
+Bob → goes down
+
+Example:
+
+Alice: 1516
+
+Bob: 1484
+
+Match 2 — Bob wins
+
+Now expectations are not equal anymore.
+
+Expected score:
+
+Alice (1516) ≈ 0.55
+
+Bob (1484) ≈ 0.45
+
+Bob beats a higher-rated player, so:
+
+Bob gains more than Alice loses
+
+Alice loses more than Bob gained in match 1
+
+Result:
+
+Bob slightly above 1500
+
+Alice slightly below 1500
+
+This is intentional.
+
+The key misunderstanding (very common)
+
+“If H2H is tied, ratings should be tied.”
+
+This is not Elo’s goal.
+
+Elo answers this question instead:
+
+“Based on the most recent information, who should be favored right now?”
+
+Recency matters because:
+
+Skill is assumed to be non-static
+
+Momentum and improvement are implicitly modeled
+
+Elo is path-dependent, not outcome-dependent
+
+This is the crucial concept.
+
+System	Depends On
+Win–loss record	Final counts only
+Elo	Order + expectations
+
+In Elo:
+
+A → B → A ≠ B → A → A
+even if total wins are the same
+
+This is by design.
+
+Is this a bug or feature?
+In traditional Elo:
+
+✅ Feature
+
+It allows Elo to:
+
+React faster to improvement
+
+Avoid rating stagnation
+
+Penalize “trading wins” with weaker players
+
+That’s why:
+
+Chess
+
+Tennis
+
+Online games
+all accept this behavior
+
+But your instinct is still valid
+
+What you’re feeling is this:
+
+“Elo alone is not a complete fairness model for matchmaking.”
+
+Correct.
+
+Elo is a skill estimator, not a justice system.
+
+How real systems deal with this
+
+Most serious matchmaking systems do not rely on raw Elo alone.
+
+They add layers:
+
+1️⃣ Regression to mean
+
+Pulls players back toward 1500 over time
+
+2️⃣ H2H dampening
+
+Repeated matches between same players matter less
+
+3️⃣ Batch evaluation
+
+Ratings update after sets of games, not each one
+
+4️⃣ Match confidence
+
+Uncertainty shrinks as sample size grows (Glicko)
+
+What this means for SPIN (important)
+
+You’ve just identified why SPIN needs multiple layers:
+
+Elo → skill estimate
+
+H2H → rivalry context
+
+Match history → audit trail
+
+Matchmaking logic → fairness control
+
+SPIN should NOT:
+
+Match solely on Elo
+
+Assume Elo equality = fairness
+
+SPIN SHOULD:
+
+Use Elo as one input
+
+Penalize immediate rematches
+
+Consider symmetric H2H states
+
+If you wanted symmetric behavior (intentionally)
+
+You’d need to change the model, for example:
+
+Update Elo only after N games
+
+Average expected scores over a series
+
+Freeze rating changes on tied mini-series
+
+But that is no longer pure Elo — it’s a hybrid system.
+
+Bottom line
+
+You are not missing anything.
+
+You just discovered one of the most important limitations of Elo.
+
+This moment is actually a milestone:
+
+You’re no longer “using Elo”
+
+You’re designing a matchmaking protocol
+
+That’s exactly where SPIN becomes its own thing.
+
 <!-- 
 FORMAT START
 
