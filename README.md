@@ -1402,6 +1402,238 @@ You’re designing a matchmaking protocol
 
 That’s exactly where SPIN becomes its own thing.
 
+### v.0.6.2
+**How different is the math in ELO and Glicko-2 for matchmaking a ranked system? Which system would be more fair for the system I'm designing? Elo seems unfair for people playing their initial/placement matches since if they lose the first few it heavily skews their future rank**
+
+This is the right question at the right time.
+You’re now thinking like someone designing a ranking protocol, not just choosing one.
+
+I’ll answer this in three layers:
+
+How the math differs (conceptually, not equations)
+
+Why Elo feels unfair in placement matches
+
+Which system fits SPIN best (and why)
+
+No code yet — this is architectural.
+
+1️⃣ Core Difference: What Each System Models
+Elo models only one thing
+
+Estimated skill
+
+That’s it.
+
+It assumes:
+
+Skill is fixed (or slowly changing)
+
+All ratings are equally certain
+
+Everyone starts equally trustworthy
+
+This is why Elo is simple — and brittle.
+
+Glicko-2 models three things
+
+Skill + uncertainty + volatility
+
+Each player has:
+
+Rating (μ) → skill estimate
+
+Rating deviation (RD) → confidence in that estimate
+
+Volatility (σ) → how much skill fluctuates
+
+This is the key leap.
+
+2️⃣ Why Elo Feels Unfair in Placements (You’re Right)
+What Elo does wrong early on
+
+When a new player loses early matches:
+
+Elo assumes those losses are fully informative
+
+It treats them as “true skill revealed”
+
+It lowers rating aggressively without uncertainty
+
+But in reality:
+
+New players = unknown skill
+
+Early matches = low information
+
+Noise > signal
+
+Elo has no way to express that.
+
+So:
+
+Elo punishes ignorance as if it were certainty.
+
+That’s the core flaw.
+
+3️⃣ How Glicko-2 Fixes This (Conceptually)
+Glicko-2 says:
+
+“I don’t know how good you are yet.”
+
+So it:
+
+Starts new players with high RD
+
+Early results move ratings less permanently
+
+Skill converges as RD shrinks
+
+This solves:
+
+Bad first matchups
+
+Early sandbagging
+
+Fast learners
+
+And it does this mathematically, not heuristically.
+
+4️⃣ Matchmaking Fairness Comparison
+🔴 Elo
+
+Pros
+
+Simple
+
+Intuitive
+
+Easy to explain
+
+Cons
+
+Unfair placements
+
+No uncertainty modeling
+
+Path-dependent early bias
+
+Best for
+
+Established leagues
+
+Long histories
+
+Low churn
+
+🟢 Glicko-2
+
+Pros
+
+Fair placements
+
+Uncertainty-aware
+
+Better matchmaking early on
+
+Naturally anti-smurf
+
+Cons
+
+Harder math
+
+Less intuitive
+
+More parameters to tune
+
+Best for
+
+Online systems
+
+High player turnover
+
+Skill discovery
+
+5️⃣ Which Is More “Fair” for SPIN?
+
+Glicko-2 is objectively more fair
+—but that doesn’t mean you should switch yet.
+
+Here’s the nuance.
+
+6️⃣ The SPIN Insight (Important)
+
+SPIN doesn’t need full Glicko-2 immediately.
+
+You already did the most important part:
+
+You separated rating from matchmaking.
+
+That means:
+
+Elo can estimate skill
+
+SPIN can correct fairness at the matchmaking layer
+
+This gives you 80% of Glicko’s fairness with 20% of the complexity.
+
+7️⃣ Practical Recommendation for SPIN
+Phase 1 (Now)
+
+Keep Elo but add uncertainty heuristics:
+
+High K-factor for placements (you already did this)
+
+Rating floors during first N games
+
+Avoid matching new players vs veterans
+
+This mimics Glicko behavior without full math.
+
+Phase 2 (Later)
+
+Introduce true uncertainty:
+
+Add confidence or RD field
+
+Use it in matchmaking, not just rating
+
+Ratings remain Elo-like
+
+This becomes “Elo + RD”, which is very common.
+
+Phase 3 (If needed)
+
+Full Glicko-2:
+
+Only when scale demands it
+
+Only when abuse becomes an issue
+
+Only when you have enough data to tune it
+
+8️⃣ Key Design Principle (This is the takeaway)
+
+Fair matchmaking is about uncertainty, not precision.
+
+Elo is precise but ignorant.
+Glicko-2 is probabilistic and humble.
+
+SPIN’s advantage is that you don’t have to choose blindly —
+you can layer fairness instead of replacing math.
+
+Bottom line
+
+Elo behaving “unfairly” in placements is a known, structural limitation
+
+Glicko-2 exists specifically to fix that
+
+For SPIN:
+
+Elo + uncertainty-aware matchmaking is the sweet spot
+
+Full Glicko-2 is optional, not mandatory
+
 <!-- 
 FORMAT START
 
