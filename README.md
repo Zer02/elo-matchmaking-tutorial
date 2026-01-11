@@ -1634,6 +1634,191 @@ Elo + uncertainty-aware matchmaking is the sweet spot
 
 Full Glicko-2 is optional, not mandatory
 
+### v.0.7
+**Compare Elo vs Glicko on the same simulated players**
+
+Perfect — we’ll do this clean, minimal, and empirical, exactly how a protocol designer should.
+
+Below is SPIN v0.7, whose only purpose is to compare Elo vs Glicko-2 behavior on the same simulated players and matches.
+
+No theory.
+No opinions.
+Just math + outcomes.
+
+🌀 SPIN v0.7 — Elo vs Glicko-2 (Same Matches)
+🔹 What this version answers
+
+How differently do Elo and Glicko-2 respond to the exact same match history?
+
+This lets you see why Elo feels unfair in placements and why Glicko behaves better.
+
+🔹 What changed from v0.6
+
+Each player now has:
+
+Elo rating
+
+Glicko rating (μ)
+
+Glicko RD (uncertainty)
+
+Every match updates both systems
+
+One leaderboard shows them side-by-side
+
+Nothing else.
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>SPIN v0.7 — Elo vs Glicko</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 40px; }
+    select, button { margin: 5px; padding: 5px; }
+    table { border-collapse: collapse; margin-top: 20px; }
+    th, td { border: 1px solid #ccc; padding: 6px 10px; text-align: center; }
+  </style>
+</head>
+<body>
+
+<h1>SPIN v0.7 — Elo vs Glicko-2</h1>
+
+<div>
+  <label>Player 1:</label>
+  <select id="p1"></select>
+
+  <label>Player 2:</label>
+  <select id="p2"></select>
+
+  <label>Winner:</label>
+  <select id="winner"></select>
+
+  <button id="simulate">Simulate Match</button>
+</div>
+
+<table>
+  <thead>
+    <tr>
+      <th>Player</th>
+      <th>Elo</th>
+      <th>Glicko μ</th>
+      <th>Glicko RD</th>
+      <th>Matches</th>
+    </tr>
+  </thead>
+  <tbody id="leaderboard"></tbody>
+</table>
+
+<script src="app.js"></script>
+</body>
+</html>
+```
+
+```js
+// --- Constants ---
+const ELO_K = 32;
+const GLICKO_Q = Math.log(10) / 400;
+
+// --- Players ---
+const players = {
+  Alice: { elo: 1500, mu: 1500, rd: 350, matches: 0 },
+  Bob:   { elo: 1500, mu: 1500, rd: 350, matches: 0 }
+};
+
+// --- DOM ---
+const p1Sel = document.getElementById("p1");
+const p2Sel = document.getElementById("p2");
+const winnerSel = document.getElementById("winner");
+const btn = document.getElementById("simulate");
+const board = document.getElementById("leaderboard");
+
+// --- Init selectors ---
+function initSelectors() {
+  [p1Sel, p2Sel, winnerSel].forEach(s => s.innerHTML = "");
+  Object.keys(players).forEach(p => {
+    p1Sel.add(new Option(p, p));
+    p2Sel.add(new Option(p, p));
+    winnerSel.add(new Option(p, p));
+  });
+}
+
+// --- Elo ---
+function eloUpdate(rA, rB, scoreA) {
+  const expected = 1 / (1 + Math.pow(10, (rB - rA) / 400));
+  return rA + ELO_K * (scoreA - expected);
+}
+
+// --- Glicko (single-match simplified) ---
+function g(rd) {
+  return 1 / Math.sqrt(1 + (3 * GLICKO_Q ** 2 * rd ** 2) / (Math.PI ** 2));
+}
+
+function expected(muA, muB, rdB) {
+  return 1 / (1 + Math.pow(10, -g(rdB) * (muA - muB) / 400));
+}
+
+function glickoUpdate(player, opponent, score) {
+  const E = expected(player.mu, opponent.mu, opponent.rd);
+  const gRD = g(opponent.rd);
+
+  const d2 = 1 / (GLICKO_Q ** 2 * gRD ** 2 * E * (1 - E));
+  const muNew = player.mu + (GLICKO_Q / (1 / player.rd ** 2 + 1 / d2)) * gRD * (score - E);
+  const rdNew = Math.sqrt(1 / (1 / player.rd ** 2 + 1 / d2));
+
+  player.mu = muNew;
+  player.rd = rdNew;
+}
+
+// --- UI ---
+function render() {
+  board.innerHTML = "";
+  Object.entries(players).forEach(([name, p]) => {
+    board.innerHTML += `
+      <tr>
+        <td>${name}</td>
+        <td>${p.elo.toFixed(1)}</td>
+        <td>${p.mu.toFixed(1)}</td>
+        <td>${p.rd.toFixed(1)}</td>
+        <td>${p.matches}</td>
+      </tr>`;
+  });
+}
+
+// --- Simulation ---
+btn.addEventListener("click", () => {
+  const p1 = players[p1Sel.value];
+  const p2 = players[p2Sel.value];
+  const winner = winnerSel.value;
+
+  if (p1Sel.value === p2Sel.value) return alert("Players must differ");
+
+  const score1 = winner === p1Sel.value ? 1 : 0;
+  const score2 = 1 - score1;
+
+  // Elo
+  const elo1 = eloUpdate(p1.elo, p2.elo, score1);
+  const elo2 = eloUpdate(p2.elo, p1.elo, score2);
+
+  // Glicko
+  glickoUpdate(p1, p2, score1);
+  glickoUpdate(p2, p1, score2);
+
+  p1.elo = elo1;
+  p2.elo = elo2;
+
+  p1.matches++;
+  p2.matches++;
+
+  render();
+});
+
+// --- Init ---
+initSelectors();
+render();
+```
+
 <!-- 
 FORMAT START
 

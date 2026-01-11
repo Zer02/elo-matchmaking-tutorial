@@ -1,144 +1,101 @@
+// --- Constants ---
+const ELO_K = 32;
+const GLICKO_Q = Math.log(10) / 400;
+
 // --- Players ---
 const players = {
-  Alice: { rating: 1500, wins: 0, losses: 0, matches: 0 },
-  Bob: { rating: 1500, wins: 0, losses: 0, matches: 0 },
-  Carol: { rating: 1500, wins: 0, losses: 0, matches: 0 },
-  Dave: { rating: 1500, wins: 0, losses: 0, matches: 0 },
+  Alice: { elo: 1500, mu: 1500, rd: 350, matches: 0 },
+  Bob: { elo: 1500, mu: 1500, rd: 350, matches: 0 },
 };
 
-// --- Head-to-Head ---
-const h2h = {};
-Object.keys(players).forEach((p1) => {
-  h2h[p1] = {};
-  Object.keys(players).forEach((p2) => {
-    if (p1 !== p2) h2h[p1][p2] = { wins: 0, losses: 0 };
+// --- DOM ---
+const p1Sel = document.getElementById("p1");
+const p2Sel = document.getElementById("p2");
+const winnerSel = document.getElementById("winner");
+const btn = document.getElementById("simulate");
+const board = document.getElementById("leaderboard");
+
+// --- Init selectors ---
+function initSelectors() {
+  [p1Sel, p2Sel, winnerSel].forEach((s) => (s.innerHTML = ""));
+  Object.keys(players).forEach((p) => {
+    p1Sel.add(new Option(p, p));
+    p2Sel.add(new Option(p, p));
+    winnerSel.add(new Option(p, p));
   });
-});
-
-// --- Match History ---
-const matches = [];
-let matchId = 1;
-
-// --- Dynamic K-Factor ---
-function getKFactor(player) {
-  return player.matches < 10 ? 40 : 20;
 }
 
 // --- Elo ---
-function calculateElo(rA, rB, scoreA, k) {
+function eloUpdate(rA, rB, scoreA) {
   const expected = 1 / (1 + Math.pow(10, (rB - rA) / 400));
-  return rA + k * (scoreA - expected);
+  return rA + ELO_K * (scoreA - expected);
 }
 
-// --- DOM ---
-const p1Select = document.getElementById("player1");
-const p2Select = document.getElementById("player2");
-const winnerSelect = document.getElementById("winner");
-const simulateBtn = document.getElementById("simulate");
-const leaderboardBody = document.getElementById("leaderboard");
-const h2hDiv = document.getElementById("h2h");
-const historyDiv = document.getElementById("matchHistory");
+// --- Glicko (single-match simplified) ---
+function g(rd) {
+  return 1 / Math.sqrt(1 + (3 * GLICKO_Q ** 2 * rd ** 2) / Math.PI ** 2);
+}
 
-// --- Populate Selectors ---
-function populateSelectors() {
-  [p1Select, p2Select, winnerSelect].forEach((s) => (s.innerHTML = ""));
-  Object.keys(players).forEach((name) => {
-    p1Select.add(new Option(name, name));
-    p2Select.add(new Option(name, name));
-    winnerSelect.add(new Option(name, name));
+function expected(muA, muB, rdB) {
+  return 1 / (1 + Math.pow(10, (-g(rdB) * (muA - muB)) / 400));
+}
+
+function glickoUpdate(player, opponent, score) {
+  const E = expected(player.mu, opponent.mu, opponent.rd);
+  const gRD = g(opponent.rd);
+
+  const d2 = 1 / (GLICKO_Q ** 2 * gRD ** 2 * E * (1 - E));
+  const muNew =
+    player.mu + (GLICKO_Q / (1 / player.rd ** 2 + 1 / d2)) * gRD * (score - E);
+  const rdNew = Math.sqrt(1 / (1 / player.rd ** 2 + 1 / d2));
+
+  player.mu = muNew;
+  player.rd = rdNew;
+}
+
+// --- UI ---
+function render() {
+  board.innerHTML = "";
+  Object.entries(players).forEach(([name, p]) => {
+    board.innerHTML += `
+      <tr>
+        <td>${name}</td>
+        <td>${p.elo.toFixed(1)}</td>
+        <td>${p.mu.toFixed(1)}</td>
+        <td>${p.rd.toFixed(1)}</td>
+        <td>${p.matches}</td>
+      </tr>`;
   });
-}
-
-// --- UI Updates ---
-function updateLeaderboard() {
-  leaderboardBody.innerHTML = "";
-  Object.entries(players)
-    .sort((a, b) => b[1].rating - a[1].rating)
-    .forEach(([name, p]) => {
-      leaderboardBody.innerHTML += `
-        <tr>
-          <td>${name}</td>
-          <td>${p.rating.toFixed(1)}</td>
-          <td>${p.wins}</td>
-          <td>${p.losses}</td>
-          <td>${p.matches}</td>
-        </tr>`;
-    });
-}
-
-function updateH2H() {
-  h2hDiv.innerHTML = "";
-  Object.keys(h2h).forEach((p1) => {
-    Object.keys(h2h[p1]).forEach((p2) => {
-      const r = h2h[p1][p2];
-      if (r.wins + r.losses > 0) {
-        h2hDiv.innerHTML += `<p>${p1} vs ${p2}: ${r.wins}-${r.losses}</p>`;
-      }
-    });
-  });
-}
-
-function updateHistory() {
-  historyDiv.innerHTML = "";
-  matches
-    .slice()
-    .reverse()
-    .forEach((m) => {
-      historyDiv.innerHTML += `<div>#${m.id} ${m.player1} vs ${m.player2} → ${m.winner}</div>`;
-    });
 }
 
 // --- Simulation ---
-simulateBtn.addEventListener("click", () => {
-  const p1 = p1Select.value;
-  const p2 = p2Select.value;
-  const winner = winnerSelect.value;
+btn.addEventListener("click", () => {
+  const p1 = players[p1Sel.value];
+  const p2 = players[p2Sel.value];
+  const winner = winnerSel.value;
 
-  if (p1 === p2) return alert("Players must be different");
-  if (![p1, p2].includes(winner))
-    return alert("Winner must be one of the players");
+  if (p1Sel.value === p2Sel.value) return alert("Players must differ");
 
-  const score1 = winner === p1 ? 1 : 0;
+  const score1 = winner === p1Sel.value ? 1 : 0;
   const score2 = 1 - score1;
 
-  const k1 = getKFactor(players[p1]);
-  const k2 = getKFactor(players[p2]);
+  // Elo
+  const elo1 = eloUpdate(p1.elo, p2.elo, score1);
+  const elo2 = eloUpdate(p2.elo, p1.elo, score2);
 
-  const r1Before = players[p1].rating;
-  const r2Before = players[p2].rating;
+  // Glicko
+  glickoUpdate(p1, p2, score1);
+  glickoUpdate(p2, p1, score2);
 
-  players[p1].rating = calculateElo(r1Before, r2Before, score1, k1);
-  players[p2].rating = calculateElo(r2Before, r1Before, score2, k2);
+  p1.elo = elo1;
+  p2.elo = elo2;
 
-  players[p1].matches++;
-  players[p2].matches++;
+  p1.matches++;
+  p2.matches++;
 
-  if (winner === p1) {
-    players[p1].wins++;
-    players[p2].losses++;
-    h2h[p1][p2].wins++;
-    h2h[p2][p1].losses++;
-  } else {
-    players[p2].wins++;
-    players[p1].losses++;
-    h2h[p2][p1].wins++;
-    h2h[p1][p2].losses++;
-  }
-
-  matches.push({
-    id: matchId++,
-    player1: p1,
-    player2: p2,
-    winner,
-  });
-
-  updateLeaderboard();
-  updateH2H();
-  updateHistory();
+  render();
 });
 
 // --- Init ---
-populateSelectors();
-updateLeaderboard();
-updateH2H();
-updateHistory();
+initSelectors();
+render();

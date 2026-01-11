@@ -2,52 +2,44 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>SPIN v0.6</title>
+  <title>SPIN v0.7 — Elo vs Glicko</title>
   <style>
     body { font-family: Arial, sans-serif; margin: 40px; }
     select, button { margin: 5px; padding: 5px; }
-    h2 { margin-top: 30px; }
-    table { border-collapse: collapse; margin-top: 10px; }
+    table { border-collapse: collapse; margin-top: 20px; }
     th, td { border: 1px solid #ccc; padding: 6px 10px; text-align: center; }
   </style>
 </head>
 <body>
 
-  <h1>SPIN v0.6 — Dynamic K-Factor</h1>
+<h1>SPIN v0.7 — Elo vs Glicko-2</h1>
 
-  <div>
-    <label>Player 1:</label>
-    <select id="player1"></select>
+<div>
+  <label>Player 1:</label>
+  <select id="p1"></select>
 
-    <label>Player 2:</label>
-    <select id="player2"></select>
+  <label>Player 2:</label>
+  <select id="p2"></select>
 
-    <label>Winner:</label>
-    <select id="winner"></select>
+  <label>Winner:</label>
+  <select id="winner"></select>
 
-    <button id="simulate">Simulate Match</button>
-  </div>
+  <button id="simulate">Simulate Match</button>
+</div>
 
-  <h2>Leaderboard</h2>
-  <table>
-    <thead>
-      <tr>
-        <th>Player</th>
-        <th>Elo</th>
-        <th>Wins</th>
-        <th>Losses</th>
-        <th>Matches</th>
-      </tr>
-    </thead>
-    <tbody id="leaderboard"></tbody>
-  </table>
+<table>
+  <thead>
+    <tr>
+      <th>Player</th>
+      <th>Elo</th>
+      <th>Glicko μ</th>
+      <th>Glicko RD</th>
+      <th>Matches</th>
+    </tr>
+  </thead>
+  <tbody id="leaderboard"></tbody>
+</table>
 
-  <h2>Head-to-Head</h2>
-  <div id="h2h"></div>
-
-  <h2>Match History</h2>
-  <div id="matchHistory"></div>
-
-  <script src="app.js"></script>
+<script src="app.js"></script>
 </body>
 </html>
