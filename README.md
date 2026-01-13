@@ -2307,6 +2307,236 @@ SPIN v0.5 uses Glicko logic to decide matches and Elo logic to explain them.
 
 That’s the secret sauce.
 
+### v.0.8
+**Technically we're on v.0.7 and designing a v.0.8. Can you write that code?**
+
+Perfect — we’ll treat SPIN v0.7 as the current concept and SPIN v0.8 as the first “real” hybrid implementation in code.
+
+Below is a clean, readable v0.8 that:
+
+Uses Elo expected score
+
+Uses dynamic K based on RD (Glicko-inspired)
+
+Tracks MMR, RD, wins, losses
+
+Tracks head-to-head records
+
+Simulates one match per button click
+
+Continuously updates rankings
+
+No volatility math yet — this is still intentionally simple and inspectable.
+
+🧠 SPIN v0.8 — Hybrid Elo/Glicko (Educational)
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>SPIN v0.8 Matchmaking Simulator</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #0f172a;
+      color: #e5e7eb;
+      padding: 20px;
+    }
+    button {
+      padding: 10px 16px;
+      margin-bottom: 20px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+    }
+    th, td {
+      border: 1px solid #334155;
+      padding: 8px;
+      text-align: center;
+    }
+    th {
+      background: #1e293b;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>SPIN v0.8 — Hybrid Matchmaking</h1>
+  <p>Each click simulates one match using dynamic K + RD.</p>
+
+  <button onclick="simulateMatch()">Simulate Match</button>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Player</th>
+        <th>MMR</th>
+        <th>RD</th>
+        <th>W</th>
+        <th>L</th>
+        <th>H2H (summary)</th>
+      </tr>
+    </thead>
+    <tbody id="leaderboard"></tbody>
+  </table>
+
+  <script src="app.js"></script>
+</body>
+</html>
+```
+
+```js
+// ===== SPIN v0.8 CONFIG =====
+const BASE_K = 32;
+const RD_MAX = 350;
+const RD_MIN = 50;
+const RD_DECAY = 0.9;
+
+// ===== PLAYERS =====
+const players = [
+  createPlayer("Alice"),
+  createPlayer("Bob"),
+  createPlayer("Charlie"),
+  createPlayer("Diana"),
+];
+
+function createPlayer(name) {
+  return {
+    name,
+    mmr: 1500,
+    rd: RD_MAX,
+    wins: 0,
+    losses: 0,
+    h2h: {}, // opponentName -> { wins, losses }
+  };
+}
+
+// ===== CORE MATH =====
+function expectedScore(a, b) {
+  return 1 / (1 + Math.pow(10, (b.mmr - a.mmr) / 400));
+}
+
+function dynamicK(player) {
+  return BASE_K * (player.rd / RD_MAX);
+}
+
+// ===== MATCH SIM =====
+function simulateMatch() {
+  const [p1, p2] = pickTwoPlayers();
+
+  const expected1 = expectedScore(p1, p2);
+  const expected2 = 1 - expected1;
+
+  // Random outcome weighted by expected score
+  const roll = Math.random();
+  const p1Wins = roll < expected1;
+
+  updateRatings(p1, p2, p1Wins);
+  updateRatings(p2, p1, !p1Wins);
+
+  updateH2H(p1, p2, p1Wins);
+  updateH2H(p2, p1, !p1Wins);
+
+  render();
+}
+
+// ===== RATING UPDATE =====
+function updateRatings(player, opponent, won) {
+  const expected = expectedScore(player, opponent);
+  const actual = won ? 1 : 0;
+
+  const K = dynamicK(player);
+  player.mmr += K * (actual - expected);
+
+  player.rd = Math.max(RD_MIN, player.rd * RD_DECAY);
+
+  if (won) player.wins++;
+  else player.losses++;
+}
+
+// ===== H2H =====
+function updateH2H(player, opponent, won) {
+  if (!player.h2h[opponent.name]) {
+    player.h2h[opponent.name] = { wins: 0, losses: 0 };
+  }
+  won ? player.h2h[opponent.name].wins++ : player.h2h[opponent.name].losses++;
+}
+
+// ===== MATCHMAKING =====
+function pickTwoPlayers() {
+  const shuffled = [...players].sort(() => Math.random() - 0.5);
+  return [shuffled[0], shuffled[1]];
+}
+
+// ===== UI =====
+function render() {
+  const tbody = document.getElementById("leaderboard");
+  tbody.innerHTML = "";
+
+  [...players]
+    .sort((a, b) => b.mmr - a.mmr)
+    .forEach((p) => {
+      const h2hSummary = Object.entries(p.h2h)
+        .map(([opp, r]) => `${opp}: ${r.wins}-${r.losses}`)
+        .join(" | ");
+
+      const row = document.createElement("tr");
+      row.innerHTML = `
+        <td>${p.name}</td>
+        <td>${p.mmr.toFixed(1)}</td>
+        <td>${Math.round(p.rd)}</td>
+        <td>${p.wins}</td>
+        <td>${p.losses}</td>
+        <td>${h2hSummary || "-"}</td>
+      `;
+      tbody.appendChild(row);
+    });
+}
+
+render();
+```
+🧩 What v0.8 Achieves (Conceptually)
+
+Fixes Elo problems
+
+No permanent punishment from early losses
+
+Dynamic confidence via RD
+
+Order bias reduced over time
+
+Preserves simplicity
+
+Single match updates
+
+No batch periods
+
+No volatility math yet
+
+Adds SPIN identity
+
+Head-to-head memory
+
+Confidence-aware K
+
+Match-by-match learning
+
+🔜 What v0.9 Will Add (when ready)
+
+Placement matches (provisional RD rules)
+
+Smurf detection via RD behavior
+
+H2H influence on matchmaking selection
+
+Inactivity RD inflation
+
+Tier abstraction (hide raw MMR)
+
 <!-- 
 FORMAT START
 

@@ -2,44 +2,55 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>SPIN v0.7 — Elo vs Glicko</title>
+  <title>SPIN v0.8 Matchmaking Simulator</title>
   <style>
-    body { font-family: Arial, sans-serif; margin: 40px; }
-    select, button { margin: 5px; padding: 5px; }
-    table { border-collapse: collapse; margin-top: 20px; }
-    th, td { border: 1px solid #ccc; padding: 6px 10px; text-align: center; }
+    body {
+      font-family: Arial, sans-serif;
+      background: #0f172a;
+      color: #e5e7eb;
+      padding: 20px;
+    }
+    button {
+      padding: 10px 16px;
+      margin-bottom: 20px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+    }
+    th, td {
+      border: 1px solid #334155;
+      padding: 8px;
+      text-align: center;
+    }
+    th {
+      background: #1e293b;
+    }
   </style>
 </head>
 <body>
 
-<h1>SPIN v0.7 — Elo vs Glicko-2</h1>
+  <h1>SPIN v0.8 — Hybrid Matchmaking</h1>
+  <p>Each click simulates one match using dynamic K + RD.</p>
 
-<div>
-  <label>Player 1:</label>
-  <select id="p1"></select>
+  <button onclick="simulateMatch()">Simulate Match</button>
 
-  <label>Player 2:</label>
-  <select id="p2"></select>
+  <table>
+    <thead>
+      <tr>
+        <th>Player</th>
+        <th>MMR</th>
+        <th>RD</th>
+        <th>W</th>
+        <th>L</th>
+        <th>H2H (summary)</th>
+      </tr>
+    </thead>
+    <tbody id="leaderboard"></tbody>
+  </table>
 
-  <label>Winner:</label>
-  <select id="winner"></select>
-
-  <button id="simulate">Simulate Match</button>
-</div>
-
-<table>
-  <thead>
-    <tr>
-      <th>Player</th>
-      <th>Elo</th>
-      <th>Glicko μ</th>
-      <th>Glicko RD</th>
-      <th>Matches</th>
-    </tr>
-  </thead>
-  <tbody id="leaderboard"></tbody>
-</table>
-
-<script src="app.js"></script>
+  <script src="app.js"></script>
 </body>
 </html>
