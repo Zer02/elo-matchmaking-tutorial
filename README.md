@@ -2094,6 +2094,219 @@ Glicko feels unfair early but is fair long-term.
 What you’re reacting to is the truth being louder.
 
 And that’s exactly why SPIN shouldn’t blindly expose raw math.
+
+### v.0.7.2
+**Design SPIN’s hybrid model (Elo feel + Glicko brain)**
+
+Perfect — let’s lock in SPIN v0.5 conceptually.
+
+Below is a clean, simple hybrid design that gives you:
+
+Elo’s intuitive feel for players
+
+Glicko’s mathematical honesty for matchmaking
+
+Minimal complexity (no PhD math yet)
+
+A clear upgrade path to SPIN v1+
+
+SPIN v0.5 — Hybrid Matchmaking Model
+
+“Elo Feel, Glicko Brain”
+
+1. Core Philosophy (the rule SPIN follows)
+
+Matchmaking should optimize fairness,
+rankings should optimize motivation.
+
+These are not the same thing — Elo confuses them.
+
+SPIN separates them.
+
+2. Internal vs External Ratings (critical split)
+🔒 Internal (Hidden, for matchmaking)
+
+Uses Glicko-style logic
+
+Each player has:
+
+mmr (starts at 1500)
+
+rd (rating deviation, starts high, e.g. 350)
+
+confidence = 1 - (rd / rdMax) → 0 to 1
+
+This is what SPIN uses to:
+
+Find fair matches
+
+Detect uncertainty
+
+Adjust K dynamically
+
+👁 External (Visible, for players)
+
+Uses Elo-style presentation
+
+Players see:
+
+Rounded rating (e.g. 1487 → 1490)
+
+Tier (Bronze / Silver / Gold)
+
+Recent form (↑ ↓ →)
+
+Rival records (H2H)
+
+They never see RD.
+
+3. Matchmaking logic (the “Glicko brain”)
+Step 1: Candidate pool
+
+When a player queues:
+
+Find opponents within ±X MMR
+
+Expand range if RD is high
+
+High uncertainty → wider matchmaking allowed
+
+Step 2: Fairness check
+
+Prefer matches where:
+
+MMR difference is small
+
+RD overlap exists
+
+Example:
+
+Alice: 1500 ± 300
+Bob:   1550 ± 50
+→ Allowed (overlapping uncertainty)
+
+4. Rating update logic (simplified Glicko)
+4.1 Expected score (Elo math — keep it simple)
+expected = 1 / (1 + 10^((oppMMR - playerMMR) / 400))
+
+4.2 Dynamic K (this is the key hybrid move)
+
+Instead of fixed K:
+
+K = baseK * (playerRD / rdMax)
+
+
+Example:
+
+New player → RD high → big swings
+
+Established player → RD low → small swings
+
+This fixes:
+
+Elo’s placement punishment
+
+Elo’s momentum bias
+
+4.3 Rating update
+mmr += K * (actual - expected)
+
+4.4 RD decay (confidence gain)
+
+After each match:
+
+rd = max(minRD, rd * 0.9)
+
+
+After inactivity:
+
+rd = min(rdMax, rd + inactivityPenalty)
+
+
+SPIN now knows when it doesn’t know.
+
+5. Head-to-Head (SPIN specialty)
+
+SPIN keeps separate H2H confidence:
+
+Alice vs Bob:
+- Matches: 6
+- Alice wins: 4
+- Bob wins: 2
+- H2H confidence: HIGH
+
+
+Use this to:
+
+Slightly bias matchmaking
+
+Create rivalry UI
+
+Prevent infinite farming
+
+H2H affects pairing priority, not raw MMR
+
+6. Why this feels fair to players
+What players feel
+
+“I’m not punished forever for early losses”
+
+“I stabilize where I belong”
+
+“Rivalries matter”
+
+“Winning later still counts”
+
+What SPIN knows
+
+Who is uncertain
+
+Who is stable
+
+Who is improving fast
+
+Who is inactive
+
+7. Why this is better than raw Glicko-2 (for now)
+
+You intentionally do NOT include:
+
+Volatility math
+
+Time-step batch updates
+
+Logarithmic transforms
+
+Why?
+
+Overkill for v0.x
+
+Hard to debug
+
+Hard to explain
+
+Not needed yet
+
+SPIN v0.5 is Glicko-inspired, not Glicko-dogmatic.
+
+8. SPIN version roadmap (so this stays clean)
+
+v0.4 → Pure Elo + H2H
+
+v0.5 → Hybrid K + RD (this design)
+
+v0.6 → Placement rules + provisional matches
+
+v0.7 → Smurf detection (RD behavior)
+
+v1.0 → Full SPIN identity (tiers, rivals, seasons)
+
+9. One-sentence summary
+
+SPIN v0.5 uses Glicko logic to decide matches and Elo logic to explain them.
+
+That’s the secret sauce.
+
 <!-- 
 FORMAT START
 
