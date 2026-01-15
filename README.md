@@ -2537,6 +2537,372 @@ Inactivity RD inflation
 
 Tier abstraction (hide raw MMR)
 
+### v.0.8.1
+**Let's do v.0.8.1 and take some time to explain the math behind the ranking system. How would this apply to tennis players who are playing 10-20 games per season, 3-4 times per year?**
+
+Perfect — SPIN v0.8.1 is exactly the right moment to slow down and explain the math in human terms, especially for real tennis seasons, not online ladder spam.
+
+I’ll break this into four layers, from intuition → math → seasonal behavior → why this works for tennis specifically.
+
+SPIN v0.8.1 — Rating Math Explained (Human First)
+1. What SPIN is actually trying to measure
+
+At its core, SPIN is trying to estimate:
+
+“How likely is Player A to beat Player B right now?”
+
+Not:
+
+Who won last
+
+Who has the higher ego number
+
+Who has played more matches
+
+That probability is the only thing the math cares about.
+
+2. The three numbers that matter (and why)
+
+Each player has:
+
+1️⃣ MMR (rating)
+
+Your estimated skill level
+
+Starts at 1500 (neutral)
+
+Moves up/down based on results
+
+Think of this as:
+
+“Where the system thinks you belong”
+
+2️⃣ RD (rating deviation / uncertainty)
+
+How confident SPIN is about your MMR
+
+Starts high (e.g. 350)
+
+Shrinks as you play more
+
+Think of this as:
+
+“How blurry the picture is”
+
+Two players can both be 1500:
+
+One is known (RD 60)
+
+One is unknown (RD 300)
+
+They are not equal, even if the number looks the same.
+
+3️⃣ Expected Score (probability)
+
+This comes from classic Elo math:
+
+𝐸
+=
+1
+1
++
+10
+(
+𝑅
+𝑜
+𝑝
+𝑝
+−
+𝑅
+𝑦
+𝑜
+𝑢
+)
+/
+400
+E=
+1+10
+(R
+opp
+	​
+
+−R
+you
+	​
+
+)/400
+1
+	​
+
+
+This answers:
+
+“Given what we know, how often should you win?”
+
+Examples:
+
+Equal ratings → 50%
+
++200 rating → ~76%
+
++400 rating → ~91%
+
+This is not a prediction, it’s a baseline expectation.
+
+3. How SPIN updates ratings (the key hybrid idea)
+Step 1: Compare expectation vs reality
+Scenario	Expected	Actual	Result
+You win as favorite	High	1	Small gain
+You lose as favorite	High	0	Big loss
+You win as underdog	Low	1	Big gain
+You lose as underdog	Low	0	Small loss
+
+This part is standard Elo.
+
+Step 2: Scale the impact by confidence (RD)
+
+This is where SPIN diverges.
+
+Instead of fixed K:
+
+𝐾
+=
+𝐾
+𝑏
+𝑎
+𝑠
+𝑒
+×
+𝑅
+𝐷
+𝑅
+𝐷
+𝑚
+𝑎
+𝑥
+K=K
+base
+	​
+
+×
+RD
+max
+	​
+
+RD
+	​
+
+
+Meaning:
+
+New / inactive players → big swings
+
+Established players → small swings
+
+This fixes the classic Elo problem:
+
+“One bad early season ruins you forever”
+
+Step 3: Shrink uncertainty after every match
+𝑅
+𝐷
+𝑛
+𝑒
+𝑤
+=
+max
+⁡
+(
+𝑅
+𝐷
+𝑚
+𝑖
+𝑛
+,
+𝑅
+𝐷
+𝑜
+𝑙
+𝑑
+×
+0.9
+)
+RD
+new
+	​
+
+=max(RD
+min
+	​
+
+,RD
+old
+	​
+
+×0.9)
+
+Each match tells SPIN:
+
+“We know you a little better now”
+
+4. What this looks like over a tennis season
+
+Now let’s map this to real tennis, not esports.
+
+Your assumption:
+
+10–20 matches per season
+
+3–4 seasons per year
+
+Total: 30–80 matches annually
+
+That is low-volume, which is exactly where Elo struggles.
+
+5. First season (placement phase)
+Matches 1–5
+
+RD still very high
+
+Rating moves fast
+
+Upsets cause large swings
+
+SPIN is learning, not judging
+
+This is intentional.
+
+In tennis:
+
+Court surface
+
+Weather
+
+New partners
+
+Fitness
+
+Nerves
+
+Early noise is real.
+
+SPIN absorbs it instead of overreacting long-term.
+
+Matches 6–15
+
+RD drops quickly
+
+Rating stabilizes
+
+Wins/losses matter more relative to expectation
+
+By mid-season:
+
+SPIN has a usable model of you
+
+6. Between seasons (this is crucial)
+
+At season end:
+
+MMR stays
+
+RD inflates slightly
+
+Why?
+
+People change between seasons.
+
+In tennis:
+
+You train
+
+You stop playing
+
+You get injured
+
+You age
+
+You improve technique
+
+So SPIN says:
+
+“I trust last season, but not blindly”
+
+This allows:
+
+Comebacks
+
+Breakout improvements
+
+Declines without punishment
+
+7. Multiple seasons = true skill emerges
+
+After ~40–60 matches:
+
+RD approaches minimum
+
+Rating becomes very stable
+
+Upsets barely move the needle
+
+Only consistent performance matters
+
+At this point:
+
+Your rating is earned, not noisy
+
+This is where leagues feel fair.
+
+8. Why this works especially well for tennis
+Tennis has:
+
+High variance
+
+Low match volume
+
+Strong H2H patterns
+
+Style mismatches
+
+Day-to-day performance swings
+
+SPIN accounts for this by:
+
+Not overvaluing single matches
+
+Not freezing players too early
+
+Letting rivalries exist independently of rank
+
+9. Why Elo fails in this exact context
+
+Elo assumes:
+
+Frequent matches
+
+Stable performance
+
+Order matters
+
+Early results are equally meaningful
+
+None of that is true in recreational or semi-competitive tennis.
+
+That’s why Elo feels unfair in leagues.
+
+10. The mental model to keep
+
+MMR = where you are
+RD = how sure we are
+K = how loud this match speaks
+
+SPIN v0.8.1 just makes those three things explicit.
+
+One-sentence summary (v0.8.1)
+
+SPIN v0.8.1 treats tennis players like humans with seasons, not machines with infinite games.
+
 <!-- 
 FORMAT START
 
