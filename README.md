@@ -3067,6 +3067,210 @@ One-sentence SPIN v0.8.2 summary
 
 SPIN v0.8.2 explains results in tennis terms, not math terms — and that’s why players accept it.
 
+### v.0.8.3
+**I eventually want to have my own Supabase database for tennis players in this league. Should v.0.9 do that? Or are there other steps to focus on first before adding in real players?**
+
+This is a very good instinct—and the short answer is:
+
+No, v0.9 should NOT be “add Supabase + real players” yet.
+
+That urge is natural, but it’s usually where systems get brittle too early. You’re actually one version ahead conceptually already.
+
+Let me lay this out cleanly so you can see what v0.9 should be, what should come before real users, and when Supabase becomes unavoidable.
+
+Where you actually are (truth check)
+
+Right now you have:
+
+✅ A working rating model (v0.8.x)
+
+✅ A clear philosophy (SPIN ≠ Elo ≠ Glicko)
+
+✅ A player-facing explanation that feels fair
+
+❌ No stress-tested behavior
+
+❌ No league rules encoded
+
+❌ No dispute handling
+
+❌ No lifecycle rules (season start/end, inactivity, joins)
+
+Databases don’t solve any of those.
+
+What v0.9 SHOULD be (before Supabase)
+SPIN v0.9 = Rule Lock-in + Abuse Resistance
+
+This is the version where you decide:
+
+“If a real human does something weird, how does SPIN respond?”
+
+Before you store real players, SPIN must survive bad behavior, edge cases, and real tennis chaos.
+
+1. Placement rules (non-negotiable before real users)
+
+You need to define, in plain rules:
+
+How many placement matches?
+
+Do placement matches count toward H2H?
+
+Can you face the same opponent twice in placement?
+
+What happens if someone goes 0–5?
+
+Can placement players affect established players’ ratings fully?
+
+Until this is locked:
+
+Real users will feel cheated
+
+You’ll end up manually intervening
+
+This is v0.9.1, not Supabase.
+
+2. Inactivity & return logic (tennis-specific)
+
+Real tennis has:
+
+Injuries
+
+Weather gaps
+
+Life interruptions
+
+You must define:
+
+How fast confidence decays
+
+When someone is considered “returning”
+
+How many games until they’re stable again
+
+Otherwise:
+
+“I was injured for 6 months and now SPIN thinks I’m trash”
+
+This must be solved before data persistence.
+
+3. Farming & collusion prevention (very real)
+
+The moment rankings matter, players will:
+
+Avoid bad matchups
+
+Farm weaker players
+
+Collude (“you win this time”)
+
+v0.9 needs rules like:
+
+Diminishing returns on repeated H2H
+
+Match frequency caps
+
+Season-based opponent diversity
+
+These are system rules, not database problems.
+
+4. Season structure (this is huge)
+
+Before Supabase, you must answer:
+
+How long is a season?
+
+What resets?
+
+What carries over?
+
+Do tiers lock?
+
+Do playoffs exist?
+
+Once data is real, changing this becomes painful.
+
+5. Dispute philosophy (you WILL need one)
+
+You don’t need tooling yet, but you need rules:
+
+Can matches be voided?
+
+Who decides?
+
+Does SPIN ever override results?
+
+Is there an “admin nudge”?
+
+If you don’t define this first, Supabase becomes a liability.
+
+So when DOES Supabase come in?
+SPIN v1.0 = Persistence + Trust
+
+Supabase makes sense when:
+
+✅ Rules are locked
+
+✅ Behavior is predictable
+
+✅ You’re confident the math won’t change drastically
+
+✅ You want history, not experimentation
+
+Until then, Supabase just freezes mistakes.
+
+Recommended version path (important)
+v0.9
+
+Pure logic
+
+Placement rules
+
+Inactivity logic
+
+Anti-farming
+
+Season lifecycle
+
+v0.9.5
+
+Simulated league
+
+50–100 fake players
+
+Multi-season sim
+
+Abuse testing
+
+Graph rating drift
+
+v1.0
+
+Supabase + real users
+
+Auth
+
+Player profiles
+
+Match history
+
+Admin tools
+
+The key mindset shift
+
+Databases preserve decisions.
+SPIN v0.9 is about deciding what deserves to be preserved.
+
+You’re building a league system, not just a ranking algorithm.
+
+My strong recommendation
+
+Do NOT add Supabase in v0.9.
+Do this instead:
+
+v0.9 = “If I ran this league manually, would these rules feel fair?”
+
+When the answer is “yes,” Supabase becomes obvious and easy.
+
 <!-- 
 FORMAT START
 
