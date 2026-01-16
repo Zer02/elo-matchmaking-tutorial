@@ -2903,6 +2903,170 @@ One-sentence summary (v0.8.1)
 
 SPIN v0.8.1 treats tennis players like humans with seasons, not machines with infinite games.
 
+### v.0.8.2
+**How to explain this to players without math?**
+
+Perfect — this is exactly the right question for SPIN to cross from “good math” to “actually trusted by players.”
+
+Below is SPIN v0.8.2, focused purely on how you explain the system to tennis players without math, while staying truthful to what the math is doing.
+
+No formulas. No ratings jargon. No bullshit.
+
+SPIN v0.8.2 — Player-Facing Explanation (No Math)
+The one-paragraph explanation (default)
+
+SPIN ranks players based on how often they win against similar opponents.
+Early results help the system learn quickly, and over time your rating becomes more stable.
+Beating stronger players helps you more than beating weaker ones, and close rivals matter more than random matches.
+Your rating doesn’t reset each season — but the system stays flexible in case you improve or take time off.
+
+That’s it.
+Anything longer is optional.
+
+The mental model players should have
+❌ What SPIN is NOT
+
+Not a leaderboard of who won last
+
+Not a punishment for early losses
+
+Not “stuck forever”
+
+Not about total matches played
+
+✅ What SPIN IS
+
+A skill estimate
+
+Based on who you beat
+
+Gets smarter the more you play
+
+Adjusts when you improve or decline
+
+How to explain early-season volatility (no numbers)
+
+“Early in a season, SPIN moves faster because it’s still learning.
+Once it understands your level, your rating settles and only changes when you consistently outperform expectations.”
+
+Key phrase: “still learning”
+
+Never say:
+
+Uncertainty
+
+Deviation
+
+Variance
+
+How to explain upsets (this matters a lot)
+Player question:
+
+“Why did I gain so much from that win?”
+
+Answer:
+
+“Because you beat someone the system expected you to lose to.”
+
+Player question:
+
+“Why didn’t I gain much?”
+
+Answer:
+
+“Because that win was already expected — you did what you were supposed to do.”
+
+This aligns perfectly with tennis intuition.
+
+How to explain losses without tilting people
+
+“Losing to someone stronger won’t hurt you much.
+Losing to someone you’re expected to beat will.”
+
+That’s all you say.
+
+No justification.
+No math defense.
+
+How to explain rivals & head-to-head
+
+This is a huge SPIN advantage over USTA-style rankings.
+
+“SPIN remembers rivalries.
+If you and another player keep playing each other, those matches matter more than one-offs.”
+
+Players love this because it:
+
+Matches lived experience
+
+Explains style matchups
+
+Feels human
+
+How to explain seasons (critical for tennis)
+
+“Your rating carries across seasons, but SPIN stays flexible at the start of each one.
+If you’ve improved, you’ll climb faster.
+If you’re rusty, it won’t punish you forever.”
+
+This directly fixes:
+
+Fear of aging
+
+Fear of taking breaks
+
+Fear of injury downtime
+
+What players actually see (UI, not numbers)
+
+Instead of exposing raw ratings, show:
+
+Tier (Bronze / Silver / Gold / Platinum)
+
+Trend (↑ ↓ →)
+
+Rival record
+
+Confidence bar (“New”, “Established”, “Verified”)
+
+Example:
+
+Gold II
+Trend: ↑
+Rivals: Bob (3-2), Alex (1-4)
+Status: Established
+
+Now the math is invisible — but still doing the work.
+
+FAQ-style explanations (copy-paste ready)
+
+“Why am I ranked below someone I beat?”
+
+Because rankings reflect long-term performance, not just one match.
+
+“Why did my rating barely change?”
+
+Because that result was expected.
+
+“Why did my rating change a lot?”
+
+Because the system learned something new about you.
+
+“Can I get stuck?”
+
+No — consistent results always move you.
+
+The golden rule for explaining SPIN
+
+Never explain the math.
+Explain the behavior.
+
+If the behavior feels fair, the system is trusted.
+
+One-sentence SPIN v0.8.2 summary
+
+SPIN v0.8.2 explains results in tennis terms, not math terms — and that’s why players accept it.
+
 <!-- 
 FORMAT START
 
