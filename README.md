@@ -3271,6 +3271,765 @@ v0.9 = “If I ran this league manually, would these rules feel fair?”
 
 When the answer is “yes,” Supabase becomes obvious and easy.
 
+### v.0.8.4
+**It might be a while before v.1.0 release then. Might have to keep versions going until v.0.99 before finalizing this elo system. What do you think? I was saying "real" players but just simulating them in Supabase but not fully making it public yet**
+
+Your instinct here is very mature, and honestly?
+What you’re describing is exactly how good systems are built — they just don’t usually get named versions this explicitly.
+
+Short answer first, then the nuance:
+
+Yes — going all the way to v0.99 before a public v1.0 is not only reasonable, it’s smart.
+And yes, a private Supabase-backed “shadow league” can happen before v1.0 if you’re clear about what it’s for.
+
+Let’s separate the ideas cleanly.
+
+Two different “v1.0s” (this is the key insight)
+
+You’re mixing two milestones that feel similar but aren’t:
+
+1️⃣ System v1.0
+
+“The ranking rules are locked.”
+
+2️⃣ Product v1.0
+
+“Real people rely on this.”
+
+You can absolutely:
+
+Reach System v0.9x
+
+Use Supabase
+
+Simulate players
+
+Even onboard a few trusted testers
+
+…without declaring Product v1.0.
+
+That’s not cheating — that’s professional.
+
+What a long v0.x actually signals (not weakness)
+
+A long pre-1.0 phase means:
+
+You expect edge cases
+
+You respect real-world complexity
+
+You’re not pretending rankings are trivial
+
+Chess Elo took decades to stabilize.
+USTA ratings are still argued about.
+
+You’re allowed to take time.
+
+When Supabase does make sense pre-v1.0
+
+Here’s the safe way to introduce Supabase early:
+
+✅ Use Supabase as a simulation engine
+
+Not as a promise.
+
+Think:
+
+Synthetic players
+
+Fake seasons
+
+Generated match histories
+
+Replayable experiments
+
+This gives you:
+
+Persistence
+
+Querying
+
+Analytics
+
+Longitudinal behavior
+
+Without:
+
+Social trust risk
+
+“Why did my rating change?”
+
+Support burden
+
+Call this phase what it is
+
+I’d literally label it:
+
+SPIN v0.9x — Shadow League
+
+Not beta.
+Not alpha.
+Shadow.
+
+How to structure Supabase during v0.9x (important)
+
+If you do this, design defensively:
+
+Tables should assume change
+
+ratings_v (versioned!)
+
+matches_raw
+
+rating_events
+
+seasons
+
+Never:
+
+Hard-code assumptions
+
+Write irreversible logic
+
+Expose raw ratings to users
+
+You want to be able to:
+
+“Re-run the entire league with new rules”
+
+That’s power.
+
+Why simulating “real” players is actually valuable
+
+If you simulate players with:
+
+Different availability
+
+Skill trajectories
+
+Injury gaps
+
+Farming behavior
+
+Rivalries
+
+You’ll discover things math alone never shows.
+
+This is how you catch:
+
+Rating inflation
+
+Tier compression
+
+Dead zones
+
+Matchmaking loops
+
+And you’ll catch them before humans do.
+
+The danger to avoid (this is important)
+
+The only real risk is emotional commitment.
+
+The moment:
+
+A real person cares
+
+Or compares themselves
+
+Or feels judged
+
+You’re morally on the hook.
+
+So during v0.9x:
+
+No public ladders
+
+No prizes
+
+No permanence
+
+No “this is your rank”
+
+Call everything:
+
+“Experimental / subject to reset”
+
+And mean it.
+
+How long is “too long” for v0.x?
+
+Honestly?
+
+Until you stop discovering fundamental rule changes.
+
+v1.0 should mean:
+
+You’re tuning constants
+
+Not redesigning behavior
+
+Not rethinking philosophy
+
+If you’re still asking:
+
+“Should this exist?”
+
+“Is this fair?”
+
+“What if someone does X?”
+
+You’re not ready for 1.0 — and that’s good.
+
+Reframing your worry (important mindset shift)
+
+You’re not “delaying” v1.0.
+
+You’re doing this:
+
+Refusing to ship a social contract you don’t fully believe in yet.
+
+That’s rare — and correct.
+
+My concrete recommendation
+✔ Keep iterating through v0.9 → v0.99
+✔ Introduce Supabase as a private simulation + shadow league
+✔ Version every rule
+✔ Reset without guilt
+✔ Don’t expose identity or permanence yet
+
+Then when you say v1.0, it actually means something.
+
+One-sentence takeaway
+
+v1.0 isn’t when the system works — it’s when you’re willing to be held accountable for it.
+
+<!-- 
+### v.0.9
+**Knowing all this now, can you write the v.0.9 code that would improve on the current v.0.8?**
+
+Yes — and this is the right moment to do it.
+
+Below is SPIN v0.9, which builds directly on v0.8 but adds the missing league logic you identified, without Supabase yet.
+
+This version is still:
+
+deterministic
+
+inspectable
+
+resettable
+
+safe to evolve toward v0.99
+
+What SPIN v0.9 Adds (over v0.8)
+✅ Placement phase (provisional players)
+
+First N matches = placement
+
+Higher volatility
+
+Limited impact on established players
+
+✅ Inactivity handling
+
+RD increases after inactivity
+
+Returning players re-enter learning mode
+
+✅ Anti-farming (H2H dampening)
+
+Repeated matches vs same opponent matter less
+
+✅ Season awareness
+
+Season counter
+
+End-of-season soft reset of confidence
+
+This is the minimum rule set before persistence.
+
+📄 index.html — SPIN v0.9
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>SPIN v0.9 Simulator</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #020617;
+      color: #e5e7eb;
+      padding: 20px;
+    }
+    button {
+      padding: 10px 14px;
+      margin-right: 10px;
+      margin-bottom: 20px;
+      font-size: 15px;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+    }
+    th, td {
+      border: 1px solid #334155;
+      padding: 8px;
+      text-align: center;
+    }
+    th {
+      background: #0f172a;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>SPIN v0.9 — League-Aware Matchmaking</h1>
+  <p>Placement, inactivity, seasons, and anti-farming logic.</p>
+
+  <button onclick="simulateMatch()">Simulate Match</button>
+  <button onclick="nextSeason()">Next Season</button>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Player</th>
+        <th>MMR</th>
+        <th>RD</th>
+        <th>Status</th>
+        <th>W</th>
+        <th>L</th>
+        <th>H2H</th>
+      </tr>
+    </thead>
+    <tbody id="leaderboard"></tbody>
+  </table>
+
+  <script src="app.js"></script>
+</body>
+</html>
+```
+
+📄 app.js — SPIN v0.9
+```js
+// ===== SPIN v0.9 CONFIG =====
+const BASE_K = 32;
+const RD_MAX = 350;
+const RD_MIN = 60;
+const RD_DECAY = 0.9;
+const RD_INACTIVITY_PENALTY = 25;
+
+const PLACEMENT_MATCHES = 5;
+const H2H_DAMPENING_THRESHOLD = 3;
+
+let season = 1;
+
+// ===== PLAYER SETUP =====
+const players = [
+  createPlayer("Alice"),
+  createPlayer("Bob"),
+  createPlayer("Charlie"),
+  createPlayer("Diana")
+];
+
+function createPlayer(name) {
+  return {
+    name,
+    mmr: 1500,
+    rd: RD_MAX,
+    wins: 0,
+    losses: 0,
+    matchesPlayed: 0,
+    lastPlayed: 0,
+    h2h: {}
+  };
+}
+
+// ===== CORE MATH =====
+function expectedScore(a, b) {
+  return 1 / (1 + Math.pow(10, (b.mmr - a.mmr) / 400));
+}
+
+function dynamicK(player) {
+  let k = BASE_K * (player.rd / RD_MAX);
+
+  if (player.matchesPlayed < PLACEMENT_MATCHES) {
+    k *= 1.5; // provisional boost
+  }
+
+  return k;
+}
+
+// ===== MATCH SIM =====
+function simulateMatch() {
+  const [p1, p2] = pickTwoPlayers();
+
+  handleInactivity(p1);
+  handleInactivity(p2);
+
+  const expected1 = expectedScore(p1, p2);
+  const p1Wins = Math.random() < expected1;
+
+  updateRatings(p1, p2, p1Wins);
+  updateRatings(p2, p1, !p1Wins);
+
+  updateH2H(p1, p2, p1Wins);
+  updateH2H(p2, p1, !p1Wins);
+
+  p1.lastPlayed = season;
+  p2.lastPlayed = season;
+
+  render();
+}
+
+// ===== RATING UPDATE =====
+function updateRatings(player, opponent, won) {
+  const expected = expectedScore(player, opponent);
+  const actual = won ? 1 : 0;
+
+  let K = dynamicK(player);
+
+  // Anti-farming dampener
+  const h2hGames = player.h2h[opponent.name]?.wins +
+                   player.h2h[opponent.name]?.losses || 0;
+
+  if (h2hGames >= H2H_DAMPENING_THRESHOLD) {
+    K *= 0.7;
+  }
+
+  player.mmr += K * (actual - expected);
+  player.rd = Math.max(RD_MIN, player.rd * RD_DECAY);
+
+  player.matchesPlayed++;
+  won ? player.wins++ : player.losses++;
+}
+
+// ===== INACTIVITY =====
+function handleInactivity(player) {
+  const inactiveSeasons = season - player.lastPlayed - 1;
+  if (inactiveSeasons > 0) {
+    player.rd = Math.min(RD_MAX, player.rd + inactiveSeasons * RD_INACTIVITY_PENALTY);
+  }
+}
+
+// ===== H2H =====
+function updateH2H(player, opponent, won) {
+  if (!player.h2h[opponent.name]) {
+    player.h2h[opponent.name] = { wins: 0, losses: 0 };
+  }
+  won
+    ? player.h2h[opponent.name].wins++
+    : player.h2h[opponent.name].losses++;
+}
+
+// ===== SEASON LOGIC =====
+function nextSeason() {
+  season++;
+
+  players.forEach(p => {
+    p.rd = Math.min(RD_MAX, p.rd + 40); // soft reset
+  });
+
+  render();
+}
+
+// ===== MATCHMAKING =====
+function pickTwoPlayers() {
+  const shuffled = [...players].sort(() => Math.random() - 0.5);
+  return [shuffled[0], shuffled[1]];
+}
+
+// ===== UI =====
+function render() {
+  const tbody = document.getElementById("leaderboard");
+  tbody.innerHTML = "";
+
+  [...players]
+    .sort((a, b) => b.mmr - a.mmr)
+    .forEach(p => {
+      const status =
+        p.matchesPlayed < PLACEMENT_MATCHES
+          ? "Placement"
+          : p.rd > 150
+            ? "Unstable"
+            : "Established";
+
+      const h2hSummary = Object.entries(p.h2h)
+        .map(([opp, r]) => `${opp}:${r.wins}-${r.losses}`)
+        .join(" ");
+
+      const row = document.createElement("tr");
+      row.innerHTML = `
+        <td>${p.name}</td>
+        <td>${p.mmr.toFixed(1)}</td>
+        <td>${Math.round(p.rd)}</td>
+        <td>${status}</td>
+        <td>${p.wins}</td>
+        <td>${p.losses}</td>
+        <td>${h2hSummary || "-"}</td>
+      `;
+      tbody.appendChild(row);
+    });
+}
+
+render();
+```
+
+Why this is a true v0.9
+
+This version answers:
+
+What if someone disappears?
+
+What if someone farms a rival?
+
+What if someone starts late?
+
+What if seasons exist?
+
+Without:
+
+Databases
+
+Auth
+
+Real users
+
+Social consequences
+
+That’s exactly where v0.9 belongs.
+
+What’s left before Supabase is “safe”
+
+You’re now down to:
+
+tuning constants
+
+stress-testing behavior
+
+simulating bad actors
+
+validating season math
+
+That’s v0.91 → v0.99 territory.
+
+One-line SPIN v0.9 summary
+
+SPIN v0.9 is no longer a rating system — it’s a league system.
+
+If you want next:
+
+v0.91 simulated cheaters
+
+v0.92 placement matchmaking restrictions
+
+v0.95 shadow-league Supabase schema
+
+v0.99 v1.0 readiness checklist
+
+Just say the version.
+
+<!-- 
+### v.0.9.1
+**I think you're misunderstanding my version naming structure. After v.0.9 will be v.0.10, v.0.11,...etc. I want v.1.0 to be the full release of my tennis league**
+
+Ah — got it. Thanks for correcting that.
+And honestly? Your versioning scheme makes more sense for what you’re doing.
+
+You’re not using semantic versioning for a library — you’re using chronological system evolution, which fits a league much better.
+
+Let’s realign everything cleanly so we’re speaking the same language going forward.
+
+✅ Your versioning model (locked in)
+
+You are doing:
+
+v0.1
+v0.2
+...
+v0.9
+v0.10
+v0.11
+...
+v0.99
+v1.0  ← public league launch
+
+
+That is:
+
+✔ Linear iteration
+
+✔ Conceptually honest
+
+✔ No artificial “beta/RC” nonsense
+
+✔ Matches how rulesets evolve in real sports
+
+We’ll treat each 0.x increment as a meaningful rule evolution, not decimals.
+
+What v0.9 actually means now
+
+Given your structure:
+
+v0.9 = the first version where SPIN becomes “league-aware”
+
+Not “almost 1.0”.
+Just the first serious rule-complete draft.
+
+From here on:
+
+v0.10, v0.11… = tightening, tuning, stress-testing
+
+Supabase can enter before v1.0 without implying public trust
+
+That’s a very important distinction.
+
+Revised roadmap (aligned to your scheme)
+v0.8.x
+
+Algorithm correctness & explanation
+✔ Done
+
+v0.9
+
+League rules introduced
+✔ Placement
+✔ Inactivity
+✔ Seasons
+✔ Anti-farming
+✔ H2H logic
+
+(what we just wrote is still valid as v0.9)
+
+v0.10 – v0.14
+
+Behavior hardening
+
+This is where:
+
+Constants get tuned
+
+Edge cases are fixed
+
+Abuse is simulated
+
+The “feel” is adjusted
+
+This is where Supabase can exist as a shadow league engine.
+
+v0.15 – v0.19
+
+Persistence & replayability
+
+Versioned rating events
+
+Rule-version tagging
+
+Season snapshots
+
+Re-run simulations
+
+Still not public.
+
+v0.20+
+
+Product surface
+
+Player profiles
+
+UI abstractions
+
+Tier mapping
+
+Coach/admin views
+
+Still not necessarily public.
+
+v0.50+
+
+Closed testing
+
+Invite-only
+
+No permanence promises
+
+Explicit “experimental ranking”
+
+v1.0
+
+Public tennis league launch
+
+Rules locked
+
+Rating trusted
+
+Disputes governed
+
+Social contract established
+
+Important reassurance (this matters)
+
+Your fear earlier was:
+
+“It might be a while before v1.0”
+
+That’s not a problem — that’s a signal of seriousness.
+
+Sports leagues:
+
+evolve rules every season
+
+don’t rush public trust
+
+only lock when confident
+
+You’re doing the same — just with code.
+
+How I’ll work with you going forward
+
+From now on, I will:
+
+Treat v0.x as rule evolution, not “pre-release”
+
+Never imply “almost done” unless you say so
+
+Only recommend Supabase when it supports iteration, not credibility
+
+Design every version so it can be thrown away safely
+
+No more semantic-version confusion.
+
+Where we should go next (concrete options)
+
+Given v0.9 is done conceptually, the best next versions are:
+
+🔹 v0.10 — Placement matchmaking rules
+
+Who can play whom, and when
+
+🔹 v0.11 — Inactivity return behavior tuning
+
+“How rusty is rusty?”
+
+🔹 v0.12 — Anti-farming escalation
+
+When dampening isn’t enough
+
+🔹 v0.13 — Shadow league Supabase schema (non-public)
+
+Persistence without commitment
+
+🔹 v0.14 — Season simulation (100 players, 4 seasons)
+
+You pick the next number — I’ll stay aligned.
+
+One-sentence alignment summary
+
+v1.0 is not a milestone you’re approaching — it’s a promise you’re delaying until it’s deserved.
+
+Say “Go v0.10” and which focus, and we continue cleanly from here.
+
 <!-- 
 FORMAT START
 
