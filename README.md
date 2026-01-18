@@ -3504,7 +3504,7 @@ One-sentence takeaway
 
 v1.0 isn’t when the system works — it’s when you’re willing to be held accountable for it.
 
-<!-- 
+
 ### v.0.9
 **Knowing all this now, can you write the v.0.9 code that would improve on the current v.0.8?**
 

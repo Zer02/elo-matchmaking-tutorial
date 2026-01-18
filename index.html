@@ -2,19 +2,19 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>SPIN v0.8 Matchmaking Simulator</title>
+  <title>SPIN v0.9 Simulator</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      background: #0f172a;
+      background: #020617;
       color: #e5e7eb;
       padding: 20px;
     }
     button {
-      padding: 10px 16px;
+      padding: 10px 14px;
+      margin-right: 10px;
       margin-bottom: 20px;
-      font-size: 16px;
-      cursor: pointer;
+      font-size: 15px;
     }
     table {
       border-collapse: collapse;
@@ -26,16 +26,17 @@
       text-align: center;
     }
     th {
-      background: #1e293b;
+      background: #0f172a;
     }
   </style>
 </head>
 <body>
 
-  <h1>SPIN v0.8 — Hybrid Matchmaking</h1>
-  <p>Each click simulates one match using dynamic K + RD.</p>
+  <h1>SPIN v0.9 — League-Aware Matchmaking</h1>
+  <p>Placement, inactivity, seasons, and anti-farming logic.</p>
 
   <button onclick="simulateMatch()">Simulate Match</button>
+  <button onclick="nextSeason()">Next Season</button>
 
   <table>
     <thead>
@@ -43,9 +44,10 @@
         <th>Player</th>
         <th>MMR</th>
         <th>RD</th>
+        <th>Status</th>
         <th>W</th>
         <th>L</th>
-        <th>H2H (summary)</th>
+        <th>H2H</th>
       </tr>
     </thead>
     <tbody id="leaderboard"></tbody>
