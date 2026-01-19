@@ -3830,7 +3830,7 @@ v0.99 v1.0 readiness checklist
 
 Just say the version.
 
-<!-- 
+
 ### v.0.9.1
 **I think you're misunderstanding my version naming structure. After v.0.9 will be v.0.10, v.0.11,...etc. I want v.1.0 to be the full release of my tennis league**
 
@@ -4027,8 +4027,6 @@ You pick the next number — I’ll stay aligned.
 One-sentence alignment summary
 
 v1.0 is not a milestone you’re approaching — it’s a promise you’re delaying until it’s deserved.
-
-Say “Go v0.10” and which focus, and we continue cleanly from here.
 
 <!-- 
 FORMAT START
