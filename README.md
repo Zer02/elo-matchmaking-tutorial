@@ -4294,7 +4294,6 @@ Promotion / relegation
 
 Seasonal rewards
 
-<!-- 
 ### v.0.10.1
 **Technically that was v.0.10, and let's keep this new seasonal match tracking change moving forward. A few notes though:Why did you start renaming the players? (Alice, Bob -> Shadow Fox, Iron Wolf) Can we have win records instead of "Swift Hawk def. Iron Wolf"? And can you reset wins and losses, but retain MMR after every new season?**
 
