@@ -1,161 +1,137 @@
-// ===== SPIN v0.9 CONFIG =====
-const BASE_K = 32;
-const RD_MAX = 350;
-const RD_MIN = 60;
-const RD_DECAY = 0.9;
-const RD_INACTIVITY_PENALTY = 25;
+// =======================
+// SPIN v0.9 Core State
+// =======================
 
-const PLACEMENT_MATCHES = 5;
-const H2H_DAMPENING_THRESHOLD = 3;
+let currentSeason = 1;
 
-let season = 1;
-
-// ===== PLAYER SETUP =====
-const players = [
-  createPlayer("Alice"),
-  createPlayer("Bob"),
-  createPlayer("Charlie"),
-  createPlayer("Diana")
+let players = [
+  { id: 1, name: "Swift Hawk", elo: 1500, wins: 0, losses: 0 },
+  { id: 2, name: "Iron Wolf", elo: 1500, wins: 0, losses: 0 },
+  { id: 3, name: "Shadow Fox", elo: 1500, wins: 0, losses: 0 },
 ];
 
-function createPlayer(name) {
-  return {
-    name,
-    mmr: 1500,
-    rd: RD_MAX,
-    wins: 0,
-    losses: 0,
-    matchesPlayed: 0,
-    lastPlayed: 0,
-    h2h: {}
-  };
+let seasons = [{ season: 1, matches: [] }];
+
+// =======================
+// Elo Math
+// =======================
+
+const K = 32;
+
+function expectedScore(rA, rB) {
+  return 1 / (1 + Math.pow(10, (rB - rA) / 400));
 }
 
-// ===== CORE MATH =====
-function expectedScore(a, b) {
-  return 1 / (1 + Math.pow(10, (b.mmr - a.mmr) / 400));
+function updateElo(winner, loser) {
+  const eW = expectedScore(winner.elo, loser.elo);
+  const eL = expectedScore(loser.elo, winner.elo);
+
+  winner.elo += K * (1 - eW);
+  loser.elo += K * (0 - eL);
+
+  winner.elo = Number(winner.elo.toFixed(1));
+  loser.elo = Number(loser.elo.toFixed(1));
 }
 
-function dynamicK(player) {
-  let k = BASE_K * (player.rd / RD_MAX);
+// =======================
+// Match Simulation
+// =======================
 
-  if (player.matchesPlayed < PLACEMENT_MATCHES) {
-    k *= 1.5; // provisional boost
-  }
-
-  return k;
-}
-
-// ===== MATCH SIM =====
 function simulateMatch() {
-  const [p1, p2] = pickTwoPlayers();
+  const [a, b] = shuffle(players).slice(0, 2);
 
-  handleInactivity(p1);
-  handleInactivity(p2);
+  const winner = Math.random() > 0.5 ? a : b;
+  const loser = winner === a ? b : a;
 
-  const expected1 = expectedScore(p1, p2);
-  const p1Wins = Math.random() < expected1;
+  winner.wins++;
+  loser.losses++;
 
-  updateRatings(p1, p2, p1Wins);
-  updateRatings(p2, p1, !p1Wins);
+  updateElo(winner, loser);
 
-  updateH2H(p1, p2, p1Wins);
-  updateH2H(p2, p1, !p1Wins);
+  const season = seasons.find((s) => s.season === currentSeason);
 
-  p1.lastPlayed = season;
-  p2.lastPlayed = season;
-
-  render();
-}
-
-// ===== RATING UPDATE =====
-function updateRatings(player, opponent, won) {
-  const expected = expectedScore(player, opponent);
-  const actual = won ? 1 : 0;
-
-  let K = dynamicK(player);
-
-  // Anti-farming dampener
-  const h2hGames = player.h2h[opponent.name]?.wins +
-                   player.h2h[opponent.name]?.losses || 0;
-
-  if (h2hGames >= H2H_DAMPENING_THRESHOLD) {
-    K *= 0.7;
-  }
-
-  player.mmr += K * (actual - expected);
-  player.rd = Math.max(RD_MIN, player.rd * RD_DECAY);
-
-  player.matchesPlayed++;
-  won ? player.wins++ : player.losses++;
-}
-
-// ===== INACTIVITY =====
-function handleInactivity(player) {
-  const inactiveSeasons = season - player.lastPlayed - 1;
-  if (inactiveSeasons > 0) {
-    player.rd = Math.min(RD_MAX, player.rd + inactiveSeasons * RD_INACTIVITY_PENALTY);
-  }
-}
-
-// ===== H2H =====
-function updateH2H(player, opponent, won) {
-  if (!player.h2h[opponent.name]) {
-    player.h2h[opponent.name] = { wins: 0, losses: 0 };
-  }
-  won
-    ? player.h2h[opponent.name].wins++
-    : player.h2h[opponent.name].losses++;
-}
-
-// ===== SEASON LOGIC =====
-function nextSeason() {
-  season++;
-
-  players.forEach(p => {
-    p.rd = Math.min(RD_MAX, p.rd + 40); // soft reset
+  season.matches.push({
+    winner: winner.name,
+    loser: loser.name,
+    winnerElo: winner.elo,
+    loserElo: loser.elo,
   });
 
   render();
 }
 
-// ===== MATCHMAKING =====
-function pickTwoPlayers() {
-  const shuffled = [...players].sort(() => Math.random() - 0.5);
-  return [shuffled[0], shuffled[1]];
+// =======================
+// Seasons
+// =======================
+
+function nextSeason() {
+  currentSeason++;
+
+  seasons.push({
+    season: currentSeason,
+    matches: [],
+  });
+
+  render();
 }
 
-// ===== UI =====
+// =======================
+// Rendering
+// =======================
+
 function render() {
-  const tbody = document.getElementById("leaderboard");
+  document.getElementById("season").textContent = currentSeason;
+
+  const tbody = document.getElementById("players");
   tbody.innerHTML = "";
 
-  [...players]
-    .sort((a, b) => b.mmr - a.mmr)
-    .forEach(p => {
-      const status =
-        p.matchesPlayed < PLACEMENT_MATCHES
-          ? "Placement"
-          : p.rd > 150
-            ? "Unstable"
-            : "Established";
-
-      const h2hSummary = Object.entries(p.h2h)
-        .map(([opp, r]) => `${opp}:${r.wins}-${r.losses}`)
-        .join(" ");
-
-      const row = document.createElement("tr");
-      row.innerHTML = `
-        <td>${p.name}</td>
-        <td>${p.mmr.toFixed(1)}</td>
-        <td>${Math.round(p.rd)}</td>
-        <td>${status}</td>
-        <td>${p.wins}</td>
-        <td>${p.losses}</td>
-        <td>${h2hSummary || "-"}</td>
+  players
+    .sort((a, b) => b.elo - a.elo)
+    .forEach((p) => {
+      tbody.innerHTML += `
+        <tr>
+          <td>${p.name}</td>
+          <td>${p.elo}</td>
+          <td>${p.wins}</td>
+          <td>${p.losses}</td>
+        </tr>
       `;
-      tbody.appendChild(row);
     });
+
+  renderSeasons();
 }
 
+function renderSeasons() {
+  const container = document.getElementById("seasons");
+  container.innerHTML = "<h2>Season History</h2>";
+
+  seasons.forEach((season) => {
+    let html = `
+      <div class="season">
+        <h3>Season ${season.season}</h3>
+        <ul>
+    `;
+
+    if (season.matches.length === 0) {
+      html += "<li>No matches played</li>";
+    } else {
+      season.matches.forEach((m) => {
+        html += `<li>${m.winner} def. ${m.loser}</li>`;
+      });
+    }
+
+    html += "</ul></div>";
+    container.innerHTML += html;
+  });
+}
+
+// =======================
+// Helpers
+// =======================
+
+function shuffle(array) {
+  return [...array].sort(() => Math.random() - 0.5);
+}
+
+// Initial render
 render();

@@ -2,56 +2,59 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>SPIN v0.9 Simulator</title>
+  <title>SPIN v0.9 – Seasonal Elo Simulator</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      background: #020617;
-      color: #e5e7eb;
+      background: #111;
+      color: #eee;
       padding: 20px;
     }
     button {
-      padding: 10px 14px;
       margin-right: 10px;
-      margin-bottom: 20px;
-      font-size: 15px;
+      padding: 10px;
+      cursor: pointer;
     }
     table {
+      margin-top: 20px;
       border-collapse: collapse;
       width: 100%;
     }
     th, td {
-      border: 1px solid #334155;
+      border: 1px solid #444;
       padding: 8px;
       text-align: center;
     }
     th {
-      background: #0f172a;
+      background: #222;
+    }
+    .season {
+      margin-top: 30px;
     }
   </style>
 </head>
 <body>
 
-  <h1>SPIN v0.9 — League-Aware Matchmaking</h1>
-  <p>Placement, inactivity, seasons, and anti-farming logic.</p>
+  <h1>SPIN v0.9 – Seasonal Ranking System</h1>
+  <h2>Current Season: <span id="season">1</span></h2>
 
   <button onclick="simulateMatch()">Simulate Match</button>
   <button onclick="nextSeason()">Next Season</button>
 
+  <h2>Players</h2>
   <table>
     <thead>
       <tr>
         <th>Player</th>
-        <th>MMR</th>
-        <th>RD</th>
-        <th>Status</th>
-        <th>W</th>
-        <th>L</th>
-        <th>H2H</th>
+        <th>Elo</th>
+        <th>Wins</th>
+        <th>Losses</th>
       </tr>
     </thead>
-    <tbody id="leaderboard"></tbody>
+    <tbody id="players"></tbody>
   </table>
+
+  <div id="seasons"></div>
 
   <script src="app.js"></script>
 </body>
