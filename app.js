@@ -1,14 +1,31 @@
 // =======================
-// SPIN v0.11 Core State
+// SPIN v0.12 Core State
 // =======================
 
 let currentSeason = 1;
 let nextPlayerId = 1;
 const BASE_MMR = 1500;
 
+// -------- League --------
+
 let players = [];
 
-let seasons = [createNewSeason(1)];
+let seasons = [
+  createNewSeason(1)
+];
+
+// -------- Tournament --------
+
+let tournamentPlayers = [];
+
+// =======================
+// Navigation
+// =======================
+
+function showPage(page) {
+  document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+  document.getElementById(page).classList.add("active");
+}
 
 // =======================
 // Season Helpers
@@ -17,21 +34,21 @@ let seasons = [createNewSeason(1)];
 function createNewSeason(seasonNumber) {
   return {
     season: seasonNumber,
-    records: players.map((p) => ({
+    records: players.map(p => ({
       playerId: p.id,
       wins: 0,
-      losses: 0,
+      losses: 0
     })),
-    matches: [],
+    matches: []
   };
 }
 
 function getSeason() {
-  return seasons.find((s) => s.season === currentSeason);
+  return seasons.find(s => s.season === currentSeason);
 }
 
 function getRecord(playerId) {
-  return getSeason().records.find((r) => r.playerId === playerId);
+  return getSeason().records.find(r => r.playerId === playerId);
 }
 
 // =======================
@@ -56,29 +73,22 @@ function updateElo(winner, loser) {
 }
 
 // =======================
-// Player Management
+// League Players
 // =======================
 
 function addPlayer() {
   const input = document.getElementById("playerName");
   const name = input.value.trim();
-
   if (!name) return;
 
   const player = {
     id: nextPlayerId++,
     name,
-    elo: BASE_MMR,
+    elo: BASE_MMR
   };
 
   players.push(player);
-
-  // Add record for current season
-  getSeason().records.push({
-    playerId: player.id,
-    wins: 0,
-    losses: 0,
-  });
+  getSeason().records.push({ playerId: player.id, wins: 0, losses: 0 });
 
   input.value = "";
   render();
@@ -92,20 +102,14 @@ function simulateMatch() {
   if (players.length < 2) return;
 
   const [a, b] = shuffle(players).slice(0, 2);
-
   const winner = Math.random() > 0.5 ? a : b;
   const loser = winner === a ? b : a;
 
   updateElo(winner, loser);
-
   getRecord(winner.id).wins++;
   getRecord(loser.id).losses++;
 
-  getSeason().matches.push({
-    winnerId: winner.id,
-    loserId: loser.id,
-  });
-
+  getSeason().matches.push({ winnerId: winner.id, loserId: loser.id });
   render();
 }
 
@@ -117,6 +121,36 @@ function nextSeason() {
   currentSeason++;
   seasons.push(createNewSeason(currentSeason));
   render();
+}
+
+// =======================
+// Tournament Setup
+// =======================
+
+function addTournamentPlayer() {
+  const input = document.getElementById("tournamentPlayerName");
+  const name = input.value.trim();
+  if (!name) return;
+
+  tournamentPlayers.push(name);
+  input.value = "";
+  renderTournament();
+}
+
+function resetTournament() {
+  tournamentPlayers = [];
+  renderTournament();
+}
+
+function renderTournament() {
+  const list = document.getElementById("tournamentPlayers");
+  list.innerHTML = "";
+
+  tournamentPlayers.forEach((p, i) => {
+    const li = document.createElement("li");
+    li.textContent = `${i + 1}. ${p}`;
+    list.appendChild(li);
+  });
 }
 
 // =======================
@@ -132,9 +166,8 @@ function render() {
   players
     .slice()
     .sort((a, b) => b.elo - a.elo)
-    .forEach((p) => {
+    .forEach(p => {
       const record = getRecord(p.id) || { wins: 0, losses: 0 };
-
       tbody.innerHTML += `
         <tr>
           <td>${p.name}</td>
@@ -144,30 +177,6 @@ function render() {
         </tr>
       `;
     });
-
-  renderSeasons();
-}
-
-function renderSeasons() {
-  const container = document.getElementById("seasons");
-  container.innerHTML = "<h2>Season History</h2>";
-
-  seasons.forEach((season) => {
-    let html = `<h3>Season ${season.season}</h3><ul>`;
-
-    if (season.matches.length === 0) {
-      html += "<li>No matches played</li>";
-    } else {
-      season.matches.forEach((m) => {
-        const w = players.find((p) => p.id === m.winnerId)?.name;
-        const l = players.find((p) => p.id === m.loserId)?.name;
-        html += `<li>${w} vs ${l}</li>`;
-      });
-    }
-
-    html += "</ul>";
-    container.innerHTML += html;
-  });
 }
 
 // =======================
@@ -178,5 +187,4 @@ function shuffle(array) {
   return [...array].sort(() => Math.random() - 0.5);
 }
 
-// Initial render
 render();

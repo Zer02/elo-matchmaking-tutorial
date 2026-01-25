@@ -4915,6 +4915,373 @@ Season-end snapshots
 
 When you’re ready, just say “v0.12” and what you want it to solve.
 
+### v.0.12
+**Can you add another page on index.html that would allow me to enter names for a tournament format? That can be v0.12**
+
+Yes — this is a clean, natural v0.12 step 👍
+We’ll add a second page (view) inside index.html for tournament setup, without breaking league logic.
+
+No backend.
+No frameworks.
+Just state + UI.
+
+✅ SPIN v0.12 — Tournament Setup Page
+What v0.12 adds
+
+✔ A Tournament page
+✔ Enter custom player names for a tournament
+✔ Tournament roster is separate from league players
+✔ Clean navigation between League and Tournament
+✔ Foundation for brackets / round-robin later
+
+🧠 Design Choice (Important)
+
+We’re not merging tournaments into league Elo yet.
+
+Why?
+
+Tournaments may later have:
+
+Different formats
+
+Different weighting
+
+Optional Elo impact
+
+This keeps SPIN flexible
+
+So v0.12 = setup only, not simulation yet.
+
+index.html (v0.12)
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>SPIN v0.12 – League + Tournament</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #111;
+      color: #eee;
+      padding: 20px;
+    }
+    button, input {
+      padding: 8px;
+      margin-right: 6px;
+      margin-top: 6px;
+    }
+    table {
+      margin-top: 20px;
+      border-collapse: collapse;
+      width: 100%;
+    }
+    th, td {
+      border: 1px solid #444;
+      padding: 8px;
+      text-align: center;
+    }
+    th {
+      background: #222;
+    }
+    .nav button {
+      margin-right: 10px;
+    }
+    .page {
+      display: none;
+    }
+    .page.active {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>SPIN v0.12</h1>
+
+  <div class="nav">
+    <button onclick="showPage('league')">League</button>
+    <button onclick="showPage('tournament')">Tournament</button>
+  </div>
+
+  <!-- ================= LEAGUE PAGE ================= -->
+
+  <div id="league" class="page active">
+    <h2>League</h2>
+    <h3>Season <span id="season">1</span></h3>
+
+    <input id="playerName" placeholder="Player name" />
+    <button onclick="addPlayer()">Add Player</button>
+
+    <div>
+      <button onclick="simulateMatch()">Simulate Match</button>
+      <button onclick="nextSeason()">Next Season</button>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Player</th>
+          <th>MMR</th>
+          <th>Wins</th>
+          <th>Losses</th>
+        </tr>
+      </thead>
+      <tbody id="players"></tbody>
+    </table>
+  </div>
+
+  <!-- ================= TOURNAMENT PAGE ================= -->
+
+  <div id="tournament" class="page">
+    <h2>Tournament Setup</h2>
+
+    <input id="tournamentPlayerName" placeholder="Player name" />
+    <button onclick="addTournamentPlayer()">Add</button>
+
+    <h3>Participants</h3>
+    <ul id="tournamentPlayers"></ul>
+
+    <button onclick="resetTournament()">Reset Tournament</button>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
+```
+
+```js
+// =======================
+// SPIN v0.12 Core State
+// =======================
+
+let currentSeason = 1;
+let nextPlayerId = 1;
+const BASE_MMR = 1500;
+
+// -------- League --------
+
+let players = [];
+
+let seasons = [
+  createNewSeason(1)
+];
+
+// -------- Tournament --------
+
+let tournamentPlayers = [];
+
+// =======================
+// Navigation
+// =======================
+
+function showPage(page) {
+  document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+  document.getElementById(page).classList.add("active");
+}
+
+// =======================
+// Season Helpers
+// =======================
+
+function createNewSeason(seasonNumber) {
+  return {
+    season: seasonNumber,
+    records: players.map(p => ({
+      playerId: p.id,
+      wins: 0,
+      losses: 0
+    })),
+    matches: []
+  };
+}
+
+function getSeason() {
+  return seasons.find(s => s.season === currentSeason);
+}
+
+function getRecord(playerId) {
+  return getSeason().records.find(r => r.playerId === playerId);
+}
+
+// =======================
+// Elo Math
+// =======================
+
+const K = 32;
+
+function expectedScore(a, b) {
+  return 1 / (1 + Math.pow(10, (b - a) / 400));
+}
+
+function updateElo(winner, loser) {
+  const eW = expectedScore(winner.elo, loser.elo);
+  const eL = expectedScore(loser.elo, winner.elo);
+
+  winner.elo += K * (1 - eW);
+  loser.elo += K * (0 - eL);
+
+  winner.elo = Number(winner.elo.toFixed(1));
+  loser.elo = Number(loser.elo.toFixed(1));
+}
+
+// =======================
+// League Players
+// =======================
+
+function addPlayer() {
+  const input = document.getElementById("playerName");
+  const name = input.value.trim();
+  if (!name) return;
+
+  const player = {
+    id: nextPlayerId++,
+    name,
+    elo: BASE_MMR
+  };
+
+  players.push(player);
+  getSeason().records.push({ playerId: player.id, wins: 0, losses: 0 });
+
+  input.value = "";
+  render();
+}
+
+// =======================
+// Match Simulation
+// =======================
+
+function simulateMatch() {
+  if (players.length < 2) return;
+
+  const [a, b] = shuffle(players).slice(0, 2);
+  const winner = Math.random() > 0.5 ? a : b;
+  const loser = winner === a ? b : a;
+
+  updateElo(winner, loser);
+  getRecord(winner.id).wins++;
+  getRecord(loser.id).losses++;
+
+  getSeason().matches.push({ winnerId: winner.id, loserId: loser.id });
+  render();
+}
+
+// =======================
+// Seasons
+// =======================
+
+function nextSeason() {
+  currentSeason++;
+  seasons.push(createNewSeason(currentSeason));
+  render();
+}
+
+// =======================
+// Tournament Setup
+// =======================
+
+function addTournamentPlayer() {
+  const input = document.getElementById("tournamentPlayerName");
+  const name = input.value.trim();
+  if (!name) return;
+
+  tournamentPlayers.push(name);
+  input.value = "";
+  renderTournament();
+}
+
+function resetTournament() {
+  tournamentPlayers = [];
+  renderTournament();
+}
+
+function renderTournament() {
+  const list = document.getElementById("tournamentPlayers");
+  list.innerHTML = "";
+
+  tournamentPlayers.forEach((p, i) => {
+    const li = document.createElement("li");
+    li.textContent = `${i + 1}. ${p}`;
+    list.appendChild(li);
+  });
+}
+
+// =======================
+// Rendering
+// =======================
+
+function render() {
+  document.getElementById("season").textContent = currentSeason;
+
+  const tbody = document.getElementById("players");
+  tbody.innerHTML = "";
+
+  players
+    .slice()
+    .sort((a, b) => b.elo - a.elo)
+    .forEach(p => {
+      const record = getRecord(p.id) || { wins: 0, losses: 0 };
+      tbody.innerHTML += `
+        <tr>
+          <td>${p.name}</td>
+          <td>${p.elo}</td>
+          <td>${record.wins}</td>
+          <td>${record.losses}</td>
+        </tr>
+      `;
+    });
+}
+
+// =======================
+// Utilities
+// =======================
+
+function shuffle(array) {
+  return [...array].sort(() => Math.random() - 0.5);
+}
+
+render();
+```
+🎯 What You’ve Achieved at v0.12
+
+You now have three distinct systems emerging:
+
+League (persistent MMR, seasonal play)
+
+Tournament (isolated roster, format-agnostic)
+
+Navigation layer (multiple views, one app)
+
+This is exactly how real competitive platforms evolve.
+
+Natural v0.13 Options
+
+When you’re ready, we can:
+
+Generate round-robin schedules
+
+Generate single-elim brackets
+
+Allow tournament results to optionally affect MMR
+
+Seed tournaments by league Elo
+
+Add match input instead of random sim
+
+Just say v0.13 and what the tournament should do, not just collect.
+
+<!-- 
+### v.0.12.1
+**A few notes: you removed the season history from the league page, and on the tournament page you can add players, but no bracket formation or match simulation button**
+
+```html
+
+```
+
+```js
+
+```
+
 <!-- 
 FORMAT START
 

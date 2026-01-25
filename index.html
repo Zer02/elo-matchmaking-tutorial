@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>SPIN v0.11 – Custom Players</title>
+  <title>SPIN v0.12 – League + Tournament</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -11,8 +11,9 @@
       padding: 20px;
     }
     button, input {
-      margin-right: 10px;
       padding: 8px;
+      margin-right: 6px;
+      margin-top: 6px;
     }
     table {
       margin-top: 20px;
@@ -27,40 +28,66 @@
     th {
       background: #222;
     }
-    .controls {
-      margin-bottom: 15px;
+    .nav button {
+      margin-right: 10px;
+    }
+    .page {
+      display: none;
+    }
+    .page.active {
+      display: block;
     }
   </style>
 </head>
 <body>
 
-  <h1>SPIN v0.11 – Custom Player League</h1>
-  <h2>Current Season: <span id="season">1</span></h2>
+  <h1>SPIN v0.12</h1>
 
-  <div class="controls">
+  <div class="nav">
+    <button onclick="showPage('league')">League</button>
+    <button onclick="showPage('tournament')">Tournament</button>
+  </div>
+
+  <!-- ================= LEAGUE PAGE ================= -->
+
+  <div id="league" class="page active">
+    <h2>League</h2>
+    <h3>Season <span id="season">1</span></h3>
+
     <input id="playerName" placeholder="Player name" />
     <button onclick="addPlayer()">Add Player</button>
+
+    <div>
+      <button onclick="simulateMatch()">Simulate Match</button>
+      <button onclick="nextSeason()">Next Season</button>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Player</th>
+          <th>MMR</th>
+          <th>Wins</th>
+          <th>Losses</th>
+        </tr>
+      </thead>
+      <tbody id="players"></tbody>
+    </table>
   </div>
 
-  <div class="controls">
-    <button onclick="simulateMatch()">Simulate Match</button>
-    <button onclick="nextSeason()">Next Season</button>
+  <!-- ================= TOURNAMENT PAGE ================= -->
+
+  <div id="tournament" class="page">
+    <h2>Tournament Setup</h2>
+
+    <input id="tournamentPlayerName" placeholder="Player name" />
+    <button onclick="addTournamentPlayer()">Add</button>
+
+    <h3>Participants</h3>
+    <ul id="tournamentPlayers"></ul>
+
+    <button onclick="resetTournament()">Reset Tournament</button>
   </div>
-
-  <h2>Players (Current Season)</h2>
-  <table>
-    <thead>
-      <tr>
-        <th>Player</th>
-        <th>MMR</th>
-        <th>Wins</th>
-        <th>Losses</th>
-      </tr>
-    </thead>
-    <tbody id="players"></tbody>
-  </table>
-
-  <div id="seasons"></div>
 
   <script src="app.js"></script>
 </body>
