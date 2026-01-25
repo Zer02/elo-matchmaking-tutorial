@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>SPIN v0.10 – Seasonal Elo Simulator</title>
+  <title>SPIN v0.11 – Custom Players</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -10,10 +10,9 @@
       color: #eee;
       padding: 20px;
     }
-    button {
+    button, input {
       margin-right: 10px;
-      padding: 10px;
-      cursor: pointer;
+      padding: 8px;
     }
     table {
       margin-top: 20px;
@@ -28,18 +27,25 @@
     th {
       background: #222;
     }
-    .season {
-      margin-top: 30px;
+    .controls {
+      margin-bottom: 15px;
     }
   </style>
 </head>
 <body>
 
-  <h1>SPIN v0.10 – Seasonal Ranking System</h1>
+  <h1>SPIN v0.11 – Custom Player League</h1>
   <h2>Current Season: <span id="season">1</span></h2>
 
-  <button onclick="simulateMatch()">Simulate Match</button>
-  <button onclick="nextSeason()">Next Season</button>
+  <div class="controls">
+    <input id="playerName" placeholder="Player name" />
+    <button onclick="addPlayer()">Add Player</button>
+  </div>
+
+  <div class="controls">
+    <button onclick="simulateMatch()">Simulate Match</button>
+    <button onclick="nextSeason()">Next Season</button>
+  </div>
 
   <h2>Players (Current Season)</h2>
   <table>

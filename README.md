@@ -4591,6 +4591,330 @@ SPIN matchmaking logic instead of random pairing
 
 You’re building this the right way.
 
+### v.0.11
+**v0.11 should allow me to add my own players and simulate matches/seasons with them. Can you help with that?**
+
+Yep — v0.11 is the exact right time to do this.
+You’re still in simulation mode, but now you control the roster, which is a big conceptual step toward a real league.
+
+Below is SPIN v0.11, building directly on v0.10 with no regressions.
+
+✅ SPIN v0.11 — Custom Players + Seasonal Simulation
+What v0.11 adds
+
+✔ Add your own players by name
+✔ New players start at baseline MMR
+✔ Works mid-season and future seasons
+✔ Seasons still reset W/L
+✔ MMR still persists
+✔ No backend, no SQL
+
+index.html (v0.11)
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>SPIN v0.11 – Custom Players</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #111;
+      color: #eee;
+      padding: 20px;
+    }
+    button, input {
+      margin-right: 10px;
+      padding: 8px;
+    }
+    table {
+      margin-top: 20px;
+      border-collapse: collapse;
+      width: 100%;
+    }
+    th, td {
+      border: 1px solid #444;
+      padding: 8px;
+      text-align: center;
+    }
+    th {
+      background: #222;
+    }
+    .controls {
+      margin-bottom: 15px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>SPIN v0.11 – Custom Player League</h1>
+  <h2>Current Season: <span id="season">1</span></h2>
+
+  <div class="controls">
+    <input id="playerName" placeholder="Player name" />
+    <button onclick="addPlayer()">Add Player</button>
+  </div>
+
+  <div class="controls">
+    <button onclick="simulateMatch()">Simulate Match</button>
+    <button onclick="nextSeason()">Next Season</button>
+  </div>
+
+  <h2>Players (Current Season)</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Player</th>
+        <th>MMR</th>
+        <th>Wins</th>
+        <th>Losses</th>
+      </tr>
+    </thead>
+    <tbody id="players"></tbody>
+  </table>
+
+  <div id="seasons"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
+```
+
+```js
+// =======================
+// SPIN v0.11 Core State
+// =======================
+
+let currentSeason = 1;
+let nextPlayerId = 1;
+const BASE_MMR = 1500;
+
+let players = [];
+
+let seasons = [
+  createNewSeason(1)
+];
+
+// =======================
+// Season Helpers
+// =======================
+
+function createNewSeason(seasonNumber) {
+  return {
+    season: seasonNumber,
+    records: players.map(p => ({
+      playerId: p.id,
+      wins: 0,
+      losses: 0
+    })),
+    matches: []
+  };
+}
+
+function getSeason() {
+  return seasons.find(s => s.season === currentSeason);
+}
+
+function getRecord(playerId) {
+  return getSeason().records.find(r => r.playerId === playerId);
+}
+
+// =======================
+// Elo Math
+// =======================
+
+const K = 32;
+
+function expectedScore(a, b) {
+  return 1 / (1 + Math.pow(10, (b - a) / 400));
+}
+
+function updateElo(winner, loser) {
+  const eW = expectedScore(winner.elo, loser.elo);
+  const eL = expectedScore(loser.elo, winner.elo);
+
+  winner.elo += K * (1 - eW);
+  loser.elo += K * (0 - eL);
+
+  winner.elo = Number(winner.elo.toFixed(1));
+  loser.elo = Number(loser.elo.toFixed(1));
+}
+
+// =======================
+// Player Management
+// =======================
+
+function addPlayer() {
+  const input = document.getElementById("playerName");
+  const name = input.value.trim();
+
+  if (!name) return;
+
+  const player = {
+    id: nextPlayerId++,
+    name,
+    elo: BASE_MMR
+  };
+
+  players.push(player);
+
+  // Add record for current season
+  getSeason().records.push({
+    playerId: player.id,
+    wins: 0,
+    losses: 0
+  });
+
+  input.value = "";
+  render();
+}
+
+// =======================
+// Match Simulation
+// =======================
+
+function simulateMatch() {
+  if (players.length < 2) return;
+
+  const [a, b] = shuffle(players).slice(0, 2);
+
+  const winner = Math.random() > 0.5 ? a : b;
+  const loser = winner === a ? b : a;
+
+  updateElo(winner, loser);
+
+  getRecord(winner.id).wins++;
+  getRecord(loser.id).losses++;
+
+  getSeason().matches.push({
+    winnerId: winner.id,
+    loserId: loser.id
+  });
+
+  render();
+}
+
+// =======================
+// Seasons
+// =======================
+
+function nextSeason() {
+  currentSeason++;
+  seasons.push(createNewSeason(currentSeason));
+  render();
+}
+
+// =======================
+// Rendering
+// =======================
+
+function render() {
+  document.getElementById("season").textContent = currentSeason;
+
+  const tbody = document.getElementById("players");
+  tbody.innerHTML = "";
+
+  players
+    .slice()
+    .sort((a, b) => b.elo - a.elo)
+    .forEach(p => {
+      const record = getRecord(p.id) || { wins: 0, losses: 0 };
+
+      tbody.innerHTML += `
+        <tr>
+          <td>${p.name}</td>
+          <td>${p.elo}</td>
+          <td>${record.wins}</td>
+          <td>${record.losses}</td>
+        </tr>
+      `;
+    });
+
+  renderSeasons();
+}
+
+function renderSeasons() {
+  const container = document.getElementById("seasons");
+  container.innerHTML = "<h2>Season History</h2>";
+
+  seasons.forEach(season => {
+    let html = `<h3>Season ${season.season}</h3><ul>`;
+
+    if (season.matches.length === 0) {
+      html += "<li>No matches played</li>";
+    } else {
+      season.matches.forEach(m => {
+        const w = players.find(p => p.id === m.winnerId)?.name;
+        const l = players.find(p => p.id === m.loserId)?.name;
+        html += `<li>${w} vs ${l}</li>`;
+      });
+    }
+
+    html += "</ul>";
+    container.innerHTML += html;
+  });
+}
+
+// =======================
+// Utilities
+// =======================
+
+function shuffle(array) {
+  return [...array].sort(() => Math.random() - 0.5);
+}
+
+// Initial render
+render();
+```
+
+🧠 Why This Is the Right v0.11 Step
+
+You’ve now separated three concerns cleanly:
+
+Roster control (realistic league growth)
+
+Seasonal competition
+
+Long-term skill (MMR)
+
+This mirrors:
+
+Tennis ladders
+
+USTA leagues
+
+Online ranked games
+
+What Supabase will store later
+
+And you still haven’t committed to:
+
+Match formats
+
+Public exposure
+
+Rewards
+
+DAO logic
+
+Which is exactly right.
+
+v0.12 (preview, not code yet)
+
+Natural next upgrades:
+
+Manual match input (Player A beats Player B)
+
+Placement protection for new players
+
+Min matches per season
+
+Matchmaking based on Elo delta (SPIN starts here)
+
+Season-end snapshots
+
+When you’re ready, just say “v0.12” and what you want it to solve.
+
 <!-- 
 FORMAT START
 
