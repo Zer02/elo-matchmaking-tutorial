@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>SPIN v0.12 – League + Tournament</title>
+  <title>SPIN v0.12</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -12,11 +12,10 @@
     }
     button, input {
       padding: 8px;
-      margin-right: 6px;
-      margin-top: 6px;
+      margin: 5px 5px 5px 0;
     }
     table {
-      margin-top: 20px;
+      margin-top: 15px;
       border-collapse: collapse;
       width: 100%;
     }
@@ -41,54 +40,57 @@
 </head>
 <body>
 
-  <h1>SPIN v0.12</h1>
+<h1>SPIN v0.12</h1>
 
-  <div class="nav">
-    <button onclick="showPage('league')">League</button>
-    <button onclick="showPage('tournament')">Tournament</button>
+<div class="nav">
+  <button onclick="showPage('league')">League</button>
+  <button onclick="showPage('tournament')">Tournament</button>
+</div>
+
+<!-- ================= LEAGUE ================= -->
+
+<div id="league" class="page active">
+  <h2>League</h2>
+  <h3>Season <span id="season">1</span></h3>
+
+  <input id="playerName" placeholder="Player name" />
+  <button onclick="addPlayer()">Add Player</button>
+
+  <div>
+    <button onclick="simulateMatch()">Simulate Match</button>
+    <button onclick="nextSeason()">Next Season</button>
   </div>
 
-  <!-- ================= LEAGUE PAGE ================= -->
+  <table>
+    <thead>
+      <tr>
+        <th>Player</th>
+        <th>MMR</th>
+        <th>Wins</th>
+        <th>Losses</th>
+      </tr>
+    </thead>
+    <tbody id="players"></tbody>
+  </table>
 
-  <div id="league" class="page active">
-    <h2>League</h2>
-    <h3>Season <span id="season">1</span></h3>
+  <div id="seasonHistory"></div>
+</div>
 
-    <input id="playerName" placeholder="Player name" />
-    <button onclick="addPlayer()">Add Player</button>
+<!-- ================= TOURNAMENT ================= -->
 
-    <div>
-      <button onclick="simulateMatch()">Simulate Match</button>
-      <button onclick="nextSeason()">Next Season</button>
-    </div>
+<div id="tournament" class="page">
+  <h2>Tournament</h2>
 
-    <table>
-      <thead>
-        <tr>
-          <th>Player</th>
-          <th>MMR</th>
-          <th>Wins</th>
-          <th>Losses</th>
-        </tr>
-      </thead>
-      <tbody id="players"></tbody>
-    </table>
-  </div>
+  <input id="tournamentPlayerName" placeholder="Player name" />
+  <button onclick="addTournamentPlayer()">Add</button>
+  <button onclick="generateBracket()">Generate Bracket</button>
+  <button onclick="simulateTournamentMatch()">Simulate Match</button>
+  <button onclick="resetTournament()">Reset</button>
 
-  <!-- ================= TOURNAMENT PAGE ================= -->
+  <h3>Bracket</h3>
+  <ul id="bracket"></ul>
+</div>
 
-  <div id="tournament" class="page">
-    <h2>Tournament Setup</h2>
-
-    <input id="tournamentPlayerName" placeholder="Player name" />
-    <button onclick="addTournamentPlayer()">Add</button>
-
-    <h3>Participants</h3>
-    <ul id="tournamentPlayers"></ul>
-
-    <button onclick="resetTournament()">Reset Tournament</button>
-  </div>
-
-  <script src="app.js"></script>
+<script src="app.js"></script>
 </body>
 </html>

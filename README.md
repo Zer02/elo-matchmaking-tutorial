@@ -5270,17 +5270,748 @@ Add match input instead of random sim
 
 Just say v0.13 and what the tournament should do, not just collect.
 
-<!-- 
 ### v.0.12.1
 **A few notes: you removed the season history from the league page, and on the tournament page you can add players, but no bracket formation or match simulation button**
 
-```html
+Great catches — both points are valid 👍
+Let’s fix them properly and lock this in as a clean v0.12.
 
+Below is SPIN v0.12 (corrected) with:
+
+✅ Season history restored on the League page
+✅ Tournament bracket auto-generated
+✅ Tournament match simulation button
+✅ Still index.html + app.js only
+✅ No backend, no frameworks
+
+✅ SPIN v0.12 — League History + Tournament Bracket
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>SPIN v0.12</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #111;
+      color: #eee;
+      padding: 20px;
+    }
+    button, input {
+      padding: 8px;
+      margin: 5px 5px 5px 0;
+    }
+    table {
+      margin-top: 15px;
+      border-collapse: collapse;
+      width: 100%;
+    }
+    th, td {
+      border: 1px solid #444;
+      padding: 8px;
+      text-align: center;
+    }
+    th {
+      background: #222;
+    }
+    .nav button {
+      margin-right: 10px;
+    }
+    .page {
+      display: none;
+    }
+    .page.active {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+
+<h1>SPIN v0.12</h1>
+
+<div class="nav">
+  <button onclick="showPage('league')">League</button>
+  <button onclick="showPage('tournament')">Tournament</button>
+</div>
+
+<!-- ================= LEAGUE ================= -->
+
+<div id="league" class="page active">
+  <h2>League</h2>
+  <h3>Season <span id="season">1</span></h3>
+
+  <input id="playerName" placeholder="Player name" />
+  <button onclick="addPlayer()">Add Player</button>
+
+  <div>
+    <button onclick="simulateMatch()">Simulate Match</button>
+    <button onclick="nextSeason()">Next Season</button>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Player</th>
+        <th>MMR</th>
+        <th>Wins</th>
+        <th>Losses</th>
+      </tr>
+    </thead>
+    <tbody id="players"></tbody>
+  </table>
+
+  <div id="seasonHistory"></div>
+</div>
+
+<!-- ================= TOURNAMENT ================= -->
+
+<div id="tournament" class="page">
+  <h2>Tournament</h2>
+
+  <input id="tournamentPlayerName" placeholder="Player name" />
+  <button onclick="addTournamentPlayer()">Add</button>
+  <button onclick="generateBracket()">Generate Bracket</button>
+  <button onclick="simulateTournamentMatch()">Simulate Match</button>
+  <button onclick="resetTournament()">Reset</button>
+
+  <h3>Bracket</h3>
+  <ul id="bracket"></ul>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
 ```
 
 ```js
+// =======================
+// Core State
+// =======================
 
+let currentSeason = 1;
+let nextPlayerId = 1;
+const BASE_MMR = 1500;
+
+// -------- League --------
+let players = [];
+let seasons = [createNewSeason(1)];
+
+// -------- Tournament --------
+let tournamentPlayers = [];
+let bracket = [];
+let currentMatchIndex = 0;
+
+// =======================
+// Navigation
+// =======================
+
+function showPage(page) {
+  document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+  document.getElementById(page).classList.add("active");
+}
+
+// =======================
+// Season Helpers
+// =======================
+
+function createNewSeason(seasonNumber) {
+  return {
+    season: seasonNumber,
+    records: players.map(p => ({ playerId: p.id, wins: 0, losses: 0 })),
+    matches: []
+  };
+}
+
+function getSeason() {
+  return seasons.find(s => s.season === currentSeason);
+}
+
+function getRecord(playerId) {
+  return getSeason().records.find(r => r.playerId === playerId);
+}
+
+// =======================
+// Elo Math
+// =======================
+
+const K = 32;
+
+function expectedScore(a, b) {
+  return 1 / (1 + Math.pow(10, (b - a) / 400));
+}
+
+function updateElo(winner, loser) {
+  const eW = expectedScore(winner.elo, loser.elo);
+  const eL = expectedScore(loser.elo, winner.elo);
+
+  winner.elo += K * (1 - eW);
+  loser.elo += K * (0 - eL);
+
+  winner.elo = Number(winner.elo.toFixed(1));
+  loser.elo = Number(loser.elo.toFixed(1));
+}
+
+// =======================
+// League Logic
+// =======================
+
+function addPlayer() {
+  const input = document.getElementById("playerName");
+  const name = input.value.trim();
+  if (!name) return;
+
+  const player = { id: nextPlayerId++, name, elo: BASE_MMR };
+  players.push(player);
+  getSeason().records.push({ playerId: player.id, wins: 0, losses: 0 });
+
+  input.value = "";
+  render();
+}
+
+function simulateMatch() {
+  if (players.length < 2) return;
+
+  const [a, b] = shuffle(players).slice(0, 2);
+  const winner = Math.random() > 0.5 ? a : b;
+  const loser = winner === a ? b : a;
+
+  updateElo(winner, loser);
+  getRecord(winner.id).wins++;
+  getRecord(loser.id).losses++;
+
+  getSeason().matches.push({ winnerId: winner.id, loserId: loser.id });
+  render();
+}
+
+function nextSeason() {
+  currentSeason++;
+  seasons.push(createNewSeason(currentSeason));
+  render();
+}
+
+// =======================
+// Tournament Logic
+// =======================
+
+function addTournamentPlayer() {
+  const input = document.getElementById("tournamentPlayerName");
+  const name = input.value.trim();
+  if (!name) return;
+
+  tournamentPlayers.push(name);
+  input.value = "";
+  renderBracket();
+}
+
+function generateBracket() {
+  bracket = shuffle([...tournamentPlayers]).reduce((acc, p, i, arr) => {
+    if (i % 2 === 0 && arr[i + 1]) acc.push([p, arr[i + 1]]);
+    return acc;
+  }, []);
+  currentMatchIndex = 0;
+  renderBracket();
+}
+
+function simulateTournamentMatch() {
+  if (currentMatchIndex >= bracket.length) return;
+
+  const match = bracket[currentMatchIndex];
+  const winner = Math.random() > 0.5 ? match[0] : match[1];
+  bracket[currentMatchIndex] = [`${match[0]} vs ${match[1]}`, `Winner: ${winner}`];
+  currentMatchIndex++;
+
+  renderBracket();
+}
+
+function resetTournament() {
+  tournamentPlayers = [];
+  bracket = [];
+  currentMatchIndex = 0;
+  renderBracket();
+}
+
+function renderBracket() {
+  const list = document.getElementById("bracket");
+  list.innerHTML = "";
+
+  bracket.forEach(m => {
+    const li = document.createElement("li");
+    li.textContent = Array.isArray(m) ? `${m[0]} vs ${m[1]}` : `${m[0]} → ${m[1]}`;
+    list.appendChild(li);
+  });
+}
+
+// =======================
+// Rendering
+// =======================
+
+function render() {
+  document.getElementById("season").textContent = currentSeason;
+
+  const tbody = document.getElementById("players");
+  tbody.innerHTML = "";
+
+  players
+    .slice()
+    .sort((a, b) => b.elo - a.elo)
+    .forEach(p => {
+      const r = getRecord(p.id) || { wins: 0, losses: 0 };
+      tbody.innerHTML += `
+        <tr>
+          <td>${p.name}</td>
+          <td>${p.elo}</td>
+          <td>${r.wins}</td>
+          <td>${r.losses}</td>
+        </tr>
+      `;
+    });
+
+  renderSeasonHistory();
+}
+
+function renderSeasonHistory() {
+  const div = document.getElementById("seasonHistory");
+  div.innerHTML = "<h3>Season History</h3>";
+
+  seasons.forEach(s => {
+    div.innerHTML += `<p>Season ${s.season}: ${s.matches.length} matches played</p>`;
+  });
+}
+
+// =======================
+// Utilities
+// =======================
+
+function shuffle(arr) {
+  return [...arr].sort(() => Math.random() - 0.5);
+}
+
+render();
 ```
+✅ What v0.12 Now Properly Includes
+League
+
+Persistent MMR
+
+Seasonal W/L reset
+
+Season history restored
+
+Match counts per season
+
+Tournament
+
+Custom entrants
+
+Auto-generated bracket (simple single-round)
+
+Match simulation
+
+Resettable state
+
+Where This Naturally Goes (v0.13+)
+
+Round-robin tournaments
+
+Multi-round elimination
+
+Tournament → League MMR impact toggle
+
+Manual match input
+
+SPIN-based seeding
+
+You’re building this exactly the way a real competitive platform evolves.
+When ready, just say v0.13 and what behavior you want next.
+
+<!-- 
+### v.0.13
+**In the league page, you're showing matches played in season history but not players' records in those seasons. And in the tournament page, you're letting only one bracket match go through and not letting the full tournament be able to simulate. Can you generate the full bracket?**
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>SPIN v0.13</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #111;
+      color: #eee;
+      padding: 20px;
+    }
+    button, input {
+      padding: 8px;
+      margin: 5px 5px 5px 0;
+    }
+    table {
+      margin-top: 10px;
+      border-collapse: collapse;
+      width: 100%;
+    }
+    th, td {
+      border: 1px solid #444;
+      padding: 6px;
+      text-align: center;
+    }
+    th {
+      background: #222;
+    }
+    .nav button {
+      margin-right: 10px;
+    }
+    .page {
+      display: none;
+    }
+    .page.active {
+      display: block;
+    }
+    .season-block {
+      margin-bottom: 15px;
+      border: 1px solid #333;
+      padding: 10px;
+    }
+  </style>
+</head>
+<body>
+
+<h1>SPIN v0.13</h1>
+
+<div class="nav">
+  <button onclick="showPage('league')">League</button>
+  <button onclick="showPage('tournament')">Tournament</button>
+</div>
+
+<!-- ================= LEAGUE ================= -->
+
+<div id="league" class="page active">
+  <h2>League</h2>
+  <h3>Season <span id="seasonNumber">1</span></h3>
+
+  <input id="playerName" placeholder="Player name" />
+  <button onclick="addPlayer()">Add Player</button>
+
+  <div>
+    <button onclick="simulateMatch()">Simulate Match</button>
+    <button onclick="nextSeason()">Next Season</button>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Player</th>
+        <th>MMR</th>
+        <th>Wins</th>
+        <th>Losses</th>
+      </tr>
+    </thead>
+    <tbody id="leagueTable"></tbody>
+  </table>
+
+  <h3>Season History</h3>
+  <div id="seasonHistory"></div>
+</div>
+
+<!-- ================= TOURNAMENT ================= -->
+
+<div id="tournament" class="page">
+  <h2>Tournament</h2>
+
+  <input id="tournamentName" placeholder="Player name" />
+  <button onclick="addTournamentPlayer()">Add Player</button>
+  <button onclick="startTournament()">Generate Bracket</button>
+  <button onclick="playNextTournamentMatch()">Simulate Next Match</button>
+  <button onclick="resetTournament()">Reset Tournament</button>
+
+  <div id="bracket"></div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
+```
+
+```js
+// =====================
+// Core Constants
+// =====================
+
+const BASE_MMR = 1500;
+const K = 32;
+
+// =====================
+// League State
+// =====================
+
+let currentSeason = 1;
+let nextPlayerId = 1;
+
+const players = [];
+const seasons = [];
+
+// =====================
+// Tournament State
+// =====================
+
+let tournamentPlayers = [];
+let tournamentRounds = [];
+let currentRound = 0;
+let currentMatch = 0;
+
+// =====================
+// Navigation
+// =====================
+
+function showPage(page) {
+  document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+  document.getElementById(page).classList.add("active");
+}
+
+// =====================
+// Elo Math
+// =====================
+
+function expectedScore(a, b) {
+  return 1 / (1 + Math.pow(10, (b - a) / 400));
+}
+
+function updateElo(winner, loser) {
+  const ew = expectedScore(winner.elo, loser.elo);
+  const el = expectedScore(loser.elo, winner.elo);
+
+  winner.elo += K * (1 - ew);
+  loser.elo += K * (0 - el);
+
+  winner.elo = +winner.elo.toFixed(1);
+  loser.elo = +loser.elo.toFixed(1);
+}
+
+// =====================
+// League Logic
+// =====================
+
+function startSeason() {
+  seasons.push({
+    season: currentSeason,
+    records: players.map(p => ({
+      playerId: p.id,
+      wins: 0,
+      losses: 0
+    }))
+  });
+}
+
+startSeason();
+
+function getCurrentSeason() {
+  return seasons.find(s => s.season === currentSeason);
+}
+
+function getRecord(season, playerId) {
+  return season.records.find(r => r.playerId === playerId);
+}
+
+function addPlayer() {
+  const input = document.getElementById("playerName");
+  const name = input.value.trim();
+  if (!name) return;
+
+  const player = { id: nextPlayerId++, name, elo: BASE_MMR };
+  players.push(player);
+
+  seasons.forEach(s =>
+    s.records.push({ playerId: player.id, wins: 0, losses: 0 })
+  );
+
+  input.value = "";
+  renderLeague();
+}
+
+function simulateMatch() {
+  if (players.length < 2) return;
+
+  const [a, b] = shuffle(players).slice(0, 2);
+  const winner = Math.random() > 0.5 ? a : b;
+  const loser = winner === a ? b : a;
+
+  updateElo(winner, loser);
+
+  const record = getCurrentSeason();
+  getRecord(record, winner.id).wins++;
+  getRecord(record, loser.id).losses++;
+
+  renderLeague();
+}
+
+function nextSeason() {
+  currentSeason++;
+  startSeason();
+  renderLeague();
+}
+
+// =====================
+// Tournament Logic
+// =====================
+
+function addTournamentPlayer() {
+  const input = document.getElementById("tournamentName");
+  const name = input.value.trim();
+  if (!name) return;
+
+  tournamentPlayers.push(name);
+  input.value = "";
+  renderTournament();
+}
+
+function startTournament() {
+  if (tournamentPlayers.length < 2) return;
+
+  tournamentRounds = [];
+  currentRound = 0;
+  currentMatch = 0;
+
+  let round = shuffle([...tournamentPlayers]).map(p => ({ player: p }));
+  tournamentRounds.push(round);
+
+  while (round.length > 1) {
+    const nextRound = [];
+    for (let i = 0; i < round.length; i += 2) {
+      nextRound.push({ player: null });
+    }
+    tournamentRounds.push(nextRound);
+    round = nextRound;
+  }
+
+  renderTournament();
+}
+
+function playNextTournamentMatch() {
+  if (currentRound >= tournamentRounds.length - 1) return;
+
+  const round = tournamentRounds[currentRound];
+  if (currentMatch >= round.length - 1) {
+    currentRound++;
+    currentMatch = 0;
+    return;
+  }
+
+  const a = round[currentMatch].player;
+  const b = round[currentMatch + 1].player;
+  if (!a || !b) return;
+
+  const winner = Math.random() > 0.5 ? a : b;
+  tournamentRounds[currentRound + 1][Math.floor(currentMatch / 2)].player = winner;
+
+  currentMatch += 2;
+  renderTournament();
+}
+
+function resetTournament() {
+  tournamentPlayers = [];
+  tournamentRounds = [];
+  currentRound = 0;
+  currentMatch = 0;
+  renderTournament();
+}
+
+// =====================
+// Rendering
+// =====================
+
+function renderLeague() {
+  document.getElementById("seasonNumber").textContent = currentSeason;
+
+  const tbody = document.getElementById("leagueTable");
+  tbody.innerHTML = "";
+
+  const season = getCurrentSeason();
+
+  players
+    .slice()
+    .sort((a, b) => b.elo - a.elo)
+    .forEach(p => {
+      const r = getRecord(season, p.id);
+      tbody.innerHTML += `
+        <tr>
+          <td>${p.name}</td>
+          <td>${p.elo}</td>
+          <td>${r.wins}</td>
+          <td>${r.losses}</td>
+        </tr>
+      `;
+    });
+
+  renderSeasonHistory();
+}
+
+function renderSeasonHistory() {
+  const div = document.getElementById("seasonHistory");
+  div.innerHTML = "";
+
+  seasons.forEach(s => {
+    let html = `<div class="season-block"><strong>Season ${s.season}</strong><table>
+      <tr><th>Player</th><th>W</th><th>L</th></tr>`;
+
+    s.records.forEach(r => {
+      const p = players.find(p => p.id === r.playerId);
+      html += `<tr><td>${p.name}</td><td>${r.wins}</td><td>${r.losses}</td></tr>`;
+    });
+
+    html += "</table></div>";
+    div.innerHTML += html;
+  });
+}
+
+function renderTournament() {
+  const div = document.getElementById("bracket");
+  div.innerHTML = "";
+
+  tournamentRounds.forEach((round, i) => {
+    let html = `<h4>Round ${i + 1}</h4><ul>`;
+    round.forEach(m => {
+      html += `<li>${m.player ?? "—"}</li>`;
+    });
+    html += "</ul>";
+    div.innerHTML += html;
+  });
+}
+
+// =====================
+// Utils
+// =====================
+
+function shuffle(arr) {
+  return [...arr].sort(() => Math.random() - 0.5);
+}
+
+renderLeague();
+renderTournament();
+```
+Why this version matters
+
+You now have:
+
+Auditable seasonal history
+
+Clear competitive arcs
+
+A real tournament lifecycle
+
+A foundation that cleanly supports:
+
+rankings
+
+promotions
+
+playoffs
+
+Supabase later
+
+This is exactly how a real league engine evolves.
+
 
 <!-- 
 FORMAT START
