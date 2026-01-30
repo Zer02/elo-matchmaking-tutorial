@@ -29,7 +29,9 @@ let currentMatch = 0;
 // =====================
 
 function showPage(page) {
-  document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+  document
+    .querySelectorAll(".page")
+    .forEach((p) => p.classList.remove("active"));
   document.getElementById(page).classList.add("active");
 }
 
@@ -59,22 +61,22 @@ function updateElo(winner, loser) {
 function startSeason() {
   seasons.push({
     season: currentSeason,
-    records: players.map(p => ({
+    records: players.map((p) => ({
       playerId: p.id,
       wins: 0,
-      losses: 0
-    }))
+      losses: 0,
+    })),
   });
 }
 
 startSeason();
 
 function getCurrentSeason() {
-  return seasons.find(s => s.season === currentSeason);
+  return seasons.find((s) => s.season === currentSeason);
 }
 
 function getRecord(season, playerId) {
-  return season.records.find(r => r.playerId === playerId);
+  return season.records.find((r) => r.playerId === playerId);
 }
 
 function addPlayer() {
@@ -85,8 +87,8 @@ function addPlayer() {
   const player = { id: nextPlayerId++, name, elo: BASE_MMR };
   players.push(player);
 
-  seasons.forEach(s =>
-    s.records.push({ playerId: player.id, wins: 0, losses: 0 })
+  seasons.forEach((s) =>
+    s.records.push({ playerId: player.id, wins: 0, losses: 0 }),
   );
 
   input.value = "";
@@ -136,7 +138,7 @@ function startTournament() {
   currentRound = 0;
   currentMatch = 0;
 
-  let round = shuffle([...tournamentPlayers]).map(p => ({ player: p }));
+  let round = shuffle([...tournamentPlayers]).map((p) => ({ player: p }));
   tournamentRounds.push(round);
 
   while (round.length > 1) {
@@ -166,7 +168,8 @@ function playNextTournamentMatch() {
   if (!a || !b) return;
 
   const winner = Math.random() > 0.5 ? a : b;
-  tournamentRounds[currentRound + 1][Math.floor(currentMatch / 2)].player = winner;
+  tournamentRounds[currentRound + 1][Math.floor(currentMatch / 2)].player =
+    winner;
 
   currentMatch += 2;
   renderTournament();
@@ -195,7 +198,7 @@ function renderLeague() {
   players
     .slice()
     .sort((a, b) => b.elo - a.elo)
-    .forEach(p => {
+    .forEach((p) => {
       const r = getRecord(season, p.id);
       tbody.innerHTML += `
         <tr>
@@ -214,12 +217,12 @@ function renderSeasonHistory() {
   const div = document.getElementById("seasonHistory");
   div.innerHTML = "";
 
-  seasons.forEach(s => {
+  seasons.forEach((s) => {
     let html = `<div class="season-block"><strong>Season ${s.season}</strong><table>
       <tr><th>Player</th><th>W</th><th>L</th></tr>`;
 
-    s.records.forEach(r => {
-      const p = players.find(p => p.id === r.playerId);
+    s.records.forEach((r) => {
+      const p = players.find((p) => p.id === r.playerId);
       html += `<tr><td>${p.name}</td><td>${r.wins}</td><td>${r.losses}</td></tr>`;
     });
 
@@ -234,7 +237,7 @@ function renderTournament() {
 
   tournamentRounds.forEach((round, i) => {
     let html = `<h4>Round ${i + 1}</h4><ul>`;
-    round.forEach(m => {
+    round.forEach((m) => {
       html += `<li>${m.player ?? "—"}</li>`;
     });
     html += "</ul>";

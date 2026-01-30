@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>SPIN v0.12</title>
+  <title>SPIN v0.13</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -15,13 +15,13 @@
       margin: 5px 5px 5px 0;
     }
     table {
-      margin-top: 15px;
+      margin-top: 10px;
       border-collapse: collapse;
       width: 100%;
     }
     th, td {
       border: 1px solid #444;
-      padding: 8px;
+      padding: 6px;
       text-align: center;
     }
     th {
@@ -36,11 +36,16 @@
     .page.active {
       display: block;
     }
+    .season-block {
+      margin-bottom: 15px;
+      border: 1px solid #333;
+      padding: 10px;
+    }
   </style>
 </head>
 <body>
 
-<h1>SPIN v0.12</h1>
+<h1>SPIN v0.13</h1>
 
 <div class="nav">
   <button onclick="showPage('league')">League</button>
@@ -51,7 +56,7 @@
 
 <div id="league" class="page active">
   <h2>League</h2>
-  <h3>Season <span id="season">1</span></h3>
+  <h3>Season <span id="seasonNumber">1</span></h3>
 
   <input id="playerName" placeholder="Player name" />
   <button onclick="addPlayer()">Add Player</button>
@@ -70,9 +75,10 @@
         <th>Losses</th>
       </tr>
     </thead>
-    <tbody id="players"></tbody>
+    <tbody id="leagueTable"></tbody>
   </table>
 
+  <h3>Season History</h3>
   <div id="seasonHistory"></div>
 </div>
 
@@ -81,14 +87,13 @@
 <div id="tournament" class="page">
   <h2>Tournament</h2>
 
-  <input id="tournamentPlayerName" placeholder="Player name" />
-  <button onclick="addTournamentPlayer()">Add</button>
-  <button onclick="generateBracket()">Generate Bracket</button>
-  <button onclick="simulateTournamentMatch()">Simulate Match</button>
-  <button onclick="resetTournament()">Reset</button>
+  <input id="tournamentName" placeholder="Player name" />
+  <button onclick="addTournamentPlayer()">Add Player</button>
+  <button onclick="startTournament()">Generate Bracket</button>
+  <button onclick="playNextTournamentMatch()">Simulate Next Match</button>
+  <button onclick="resetTournament()">Reset Tournament</button>
 
-  <h3>Bracket</h3>
-  <ul id="bracket"></ul>
+  <div id="bracket"></div>
 </div>
 
 <script src="app.js"></script>

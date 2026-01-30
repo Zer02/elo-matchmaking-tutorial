@@ -5626,7 +5626,6 @@ SPIN-based seeding
 You’re building this exactly the way a real competitive platform evolves.
 When ready, just say v0.13 and what behavior you want next.
 
-<!-- 
 ### v.0.13
 **In the league page, you're showing matches played in season history but not players' records in those seasons. And in the tournament page, you're letting only one bracket match go through and not letting the full tournament be able to simulate. Can you generate the full bracket?**
 
