@@ -6011,6 +6011,309 @@ Supabase later
 
 This is exactly how a real league engine evolves.
 
+### v.0.13.1
+**Get rid of the tournament page (I have a separate round robin app) and then improve the UI for the league page. This is v.0.13.1**
+Got it. Clean reset, league-only, better UI, and we keep everything we’ve learned so far.
+
+This is SPIN v0.13.1.
+
+No tournament page.
+No renaming players.
+Season-aware records.
+MMR persists, W/L resets per season.
+UI is clearer and more “league dashboard” than debug output.
+
+Below is everything you need: one index.html, one app.js.
+
+🧠 What v0.13.1 Does (Quick Summary)
+
+League Concepts
+
+Persistent MMR (Elo-style)
+
+Seasons
+
+Per-season W/L records
+
+Full match history by season
+
+Manual player creation
+
+One-click match simulation
+
+One-click next season
+
+What changed vs v0.13
+
+Removed tournament logic entirely
+
+Restored season history
+
+Added per-season records table
+
+Improved layout and readability
+
+Clear separation between:
+
+Current standings
+
+Season records
+
+Match history
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>SPIN v0.13.1 – League Dashboard</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #0f172a;
+      color: #e5e7eb;
+      padding: 20px;
+    }
+    h1, h2 {
+      margin-bottom: 10px;
+    }
+    section {
+      background: #020617;
+      padding: 15px;
+      margin-bottom: 20px;
+      border-radius: 8px;
+    }
+    button {
+      background: #2563eb;
+      color: white;
+      border: none;
+      padding: 8px 12px;
+      margin: 5px 0;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #1d4ed8;
+    }
+    input {
+      padding: 6px;
+      margin-right: 5px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+    th, td {
+      border-bottom: 1px solid #334155;
+      padding: 6px;
+      text-align: center;
+    }
+    th {
+      background: #020617;
+    }
+    .muted {
+      color: #94a3b8;
+      font-size: 0.9em;
+    }
+  </style>
+</head>
+<body>
+
+<h1>🎾 SPIN League – v0.13.1</h1>
+
+<section>
+  <h2>Add Player</h2>
+  <input id="playerName" placeholder="Player name" />
+  <button onclick="addPlayer()">Add</button>
+</section>
+
+<section>
+  <h2>League Controls</h2>
+  <button onclick="simulateMatch()">Simulate Match</button>
+  <button onclick="nextSeason()">Next Season</button>
+  <div class="muted">MMR persists · W/L resets each season</div>
+</section>
+
+<section>
+  <h2>Current Standings (Season <span id="seasonNumber"></span>)</h2>
+  <table id="standings"></table>
+</section>
+
+<section>
+  <h2>Season Records</h2>
+  <table id="seasonRecords"></table>
+</section>
+
+<section>
+  <h2>Season Match History</h2>
+  <ul id="matchHistory"></ul>
+</section>
+
+<script src="app.js"></script>
+</body>
+</html>
+```
+
+```js
+let season = 1;
+let players = [];
+let matches = [];
+
+const K = 32;
+
+function addPlayer() {
+  const name = document.getElementById("playerName").value.trim();
+  if (!name) return;
+
+  players.push({
+    name,
+    rating: 1500,
+    wins: 0,
+    losses: 0
+  });
+
+  document.getElementById("playerName").value = "";
+  render();
+}
+
+function expectedScore(a, b) {
+  return 1 / (1 + Math.pow(10, (b - a) / 400));
+}
+
+function simulateMatch() {
+  if (players.length < 2) return;
+
+  const [p1, p2] = shuffle([...players]).slice(0, 2);
+
+  const e1 = expectedScore(p1.rating, p2.rating);
+  const winner = Math.random() < e1 ? p1 : p2;
+  const loser = winner === p1 ? p2 : p1;
+
+  winner.rating += K * (1 - expectedScore(winner.rating, loser.rating));
+  loser.rating += K * (0 - expectedScore(loser.rating, winner.rating));
+
+  winner.wins++;
+  loser.losses++;
+
+  matches.push({
+    season,
+    winner: winner.name,
+    loser: loser.name
+  });
+
+  render();
+}
+
+function nextSeason() {
+  season++;
+  players.forEach(p => {
+    p.wins = 0;
+    p.losses = 0;
+  });
+  render();
+}
+
+function render() {
+  document.getElementById("seasonNumber").textContent = season;
+
+  renderStandings();
+  renderSeasonRecords();
+  renderMatchHistory();
+}
+
+function renderStandings() {
+  const table = document.getElementById("standings");
+  table.innerHTML = `
+    <tr>
+      <th>Player</th>
+      <th>MMR</th>
+      <th>W</th>
+      <th>L</th>
+    </tr>
+  `;
+
+  [...players]
+    .sort((a, b) => b.rating - a.rating)
+    .forEach(p => {
+      table.innerHTML += `
+        <tr>
+          <td>${p.name}</td>
+          <td>${p.rating.toFixed(1)}</td>
+          <td>${p.wins}</td>
+          <td>${p.losses}</td>
+        </tr>
+      `;
+    });
+}
+
+function renderSeasonRecords() {
+  const table = document.getElementById("seasonRecords");
+  table.innerHTML = `
+    <tr>
+      <th>Player</th>
+      <th>Wins</th>
+      <th>Losses</th>
+    </tr>
+  `;
+
+  players.forEach(p => {
+    table.innerHTML += `
+      <tr>
+        <td>${p.name}</td>
+        <td>${p.wins}</td>
+        <td>${p.losses}</td>
+      </tr>
+    `;
+  });
+}
+
+function renderMatchHistory() {
+  const list = document.getElementById("matchHistory");
+  list.innerHTML = "";
+
+  matches
+    .filter(m => m.season === season)
+    .forEach(m => {
+      const li = document.createElement("li");
+      li.textContent = `${m.winner} beat ${m.loser}`;
+      list.appendChild(li);
+    });
+}
+
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+render();
+```
+🧭 Where This Puts SPIN
+
+You now have:
+
+A true seasonal league
+
+A persistent skill signal
+
+A clear audit trail
+
+A UI that mirrors how real leagues feel
+
+Logical next versions
+
+v0.14 → H2H table (per season)
+
+v0.15 → Placement / provisional rating logic
+
+v0.16 → Matchmaking bias correction (no recent rematches)
+
+v0.20 → Supabase simulation (not public)
+
+You’re no longer experimenting — you’re designing a league system.
 
 <!-- 
 FORMAT START

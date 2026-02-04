@@ -2,99 +2,89 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>SPIN v0.13</title>
+  <title>SPIN v0.13.1 – League Dashboard</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      background: #111;
-      color: #eee;
+      background: #0f172a;
+      color: #e5e7eb;
       padding: 20px;
     }
-    button, input {
-      padding: 8px;
-      margin: 5px 5px 5px 0;
+    h1, h2 {
+      margin-bottom: 10px;
+    }
+    section {
+      background: #020617;
+      padding: 15px;
+      margin-bottom: 20px;
+      border-radius: 8px;
+    }
+    button {
+      background: #2563eb;
+      color: white;
+      border: none;
+      padding: 8px 12px;
+      margin: 5px 0;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #1d4ed8;
+    }
+    input {
+      padding: 6px;
+      margin-right: 5px;
     }
     table {
-      margin-top: 10px;
-      border-collapse: collapse;
       width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
     }
     th, td {
-      border: 1px solid #444;
+      border-bottom: 1px solid #334155;
       padding: 6px;
       text-align: center;
     }
     th {
-      background: #222;
+      background: #020617;
     }
-    .nav button {
-      margin-right: 10px;
-    }
-    .page {
-      display: none;
-    }
-    .page.active {
-      display: block;
-    }
-    .season-block {
-      margin-bottom: 15px;
-      border: 1px solid #333;
-      padding: 10px;
+    .muted {
+      color: #94a3b8;
+      font-size: 0.9em;
     }
   </style>
 </head>
 <body>
 
-<h1>SPIN v0.13</h1>
+<h1>🎾 SPIN League – v0.13.1</h1>
 
-<div class="nav">
-  <button onclick="showPage('league')">League</button>
-  <button onclick="showPage('tournament')">Tournament</button>
-</div>
-
-<!-- ================= LEAGUE ================= -->
-
-<div id="league" class="page active">
-  <h2>League</h2>
-  <h3>Season <span id="seasonNumber">1</span></h3>
-
+<section>
+  <h2>Add Player</h2>
   <input id="playerName" placeholder="Player name" />
-  <button onclick="addPlayer()">Add Player</button>
+  <button onclick="addPlayer()">Add</button>
+</section>
 
-  <div>
-    <button onclick="simulateMatch()">Simulate Match</button>
-    <button onclick="nextSeason()">Next Season</button>
-  </div>
+<section>
+  <h2>League Controls</h2>
+  <button onclick="simulateMatch()">Simulate Match</button>
+  <button onclick="nextSeason()">Next Season</button>
+  <div class="muted">MMR persists · W/L resets each season</div>
+</section>
 
-  <table>
-    <thead>
-      <tr>
-        <th>Player</th>
-        <th>MMR</th>
-        <th>Wins</th>
-        <th>Losses</th>
-      </tr>
-    </thead>
-    <tbody id="leagueTable"></tbody>
-  </table>
+<section>
+  <h2>Current Standings (Season <span id="seasonNumber"></span>)</h2>
+  <table id="standings"></table>
+</section>
 
-  <h3>Season History</h3>
-  <div id="seasonHistory"></div>
-</div>
+<section>
+  <h2>Season Records</h2>
+  <table id="seasonRecords"></table>
+</section>
 
-<!-- ================= TOURNAMENT ================= -->
-
-<div id="tournament" class="page">
-  <h2>Tournament</h2>
-
-  <input id="tournamentName" placeholder="Player name" />
-  <button onclick="addTournamentPlayer()">Add Player</button>
-  <button onclick="startTournament()">Generate Bracket</button>
-  <button onclick="playNextTournamentMatch()">Simulate Next Match</button>
-  <button onclick="resetTournament()">Reset Tournament</button>
-
-  <div id="bracket"></div>
-</div>
+<section>
+  <h2>Season Match History</h2>
+  <ul id="matchHistory"></ul>
+</section>
 
 <script src="app.js"></script>
 </body>

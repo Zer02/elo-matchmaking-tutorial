@@ -1,257 +1,134 @@
-// =====================
-// Core Constants
-// =====================
+let season = 1;
+let players = [];
+let matches = [];
 
-const BASE_MMR = 1500;
 const K = 32;
 
-// =====================
-// League State
-// =====================
+function addPlayer() {
+  const name = document.getElementById("playerName").value.trim();
+  if (!name) return;
 
-let currentSeason = 1;
-let nextPlayerId = 1;
+  players.push({
+    name,
+    rating: 1500,
+    wins: 0,
+    losses: 0
+  });
 
-const players = [];
-const seasons = [];
-
-// =====================
-// Tournament State
-// =====================
-
-let tournamentPlayers = [];
-let tournamentRounds = [];
-let currentRound = 0;
-let currentMatch = 0;
-
-// =====================
-// Navigation
-// =====================
-
-function showPage(page) {
-  document
-    .querySelectorAll(".page")
-    .forEach((p) => p.classList.remove("active"));
-  document.getElementById(page).classList.add("active");
+  document.getElementById("playerName").value = "";
+  render();
 }
-
-// =====================
-// Elo Math
-// =====================
 
 function expectedScore(a, b) {
   return 1 / (1 + Math.pow(10, (b - a) / 400));
 }
 
-function updateElo(winner, loser) {
-  const ew = expectedScore(winner.elo, loser.elo);
-  const el = expectedScore(loser.elo, winner.elo);
-
-  winner.elo += K * (1 - ew);
-  loser.elo += K * (0 - el);
-
-  winner.elo = +winner.elo.toFixed(1);
-  loser.elo = +loser.elo.toFixed(1);
-}
-
-// =====================
-// League Logic
-// =====================
-
-function startSeason() {
-  seasons.push({
-    season: currentSeason,
-    records: players.map((p) => ({
-      playerId: p.id,
-      wins: 0,
-      losses: 0,
-    })),
-  });
-}
-
-startSeason();
-
-function getCurrentSeason() {
-  return seasons.find((s) => s.season === currentSeason);
-}
-
-function getRecord(season, playerId) {
-  return season.records.find((r) => r.playerId === playerId);
-}
-
-function addPlayer() {
-  const input = document.getElementById("playerName");
-  const name = input.value.trim();
-  if (!name) return;
-
-  const player = { id: nextPlayerId++, name, elo: BASE_MMR };
-  players.push(player);
-
-  seasons.forEach((s) =>
-    s.records.push({ playerId: player.id, wins: 0, losses: 0 }),
-  );
-
-  input.value = "";
-  renderLeague();
-}
-
 function simulateMatch() {
   if (players.length < 2) return;
 
-  const [a, b] = shuffle(players).slice(0, 2);
-  const winner = Math.random() > 0.5 ? a : b;
-  const loser = winner === a ? b : a;
+  const [p1, p2] = shuffle([...players]).slice(0, 2);
 
-  updateElo(winner, loser);
+  const e1 = expectedScore(p1.rating, p2.rating);
+  const winner = Math.random() < e1 ? p1 : p2;
+  const loser = winner === p1 ? p2 : p1;
 
-  const record = getCurrentSeason();
-  getRecord(record, winner.id).wins++;
-  getRecord(record, loser.id).losses++;
+  winner.rating += K * (1 - expectedScore(winner.rating, loser.rating));
+  loser.rating += K * (0 - expectedScore(loser.rating, winner.rating));
 
-  renderLeague();
+  winner.wins++;
+  loser.losses++;
+
+  matches.push({
+    season,
+    winner: winner.name,
+    loser: loser.name
+  });
+
+  render();
 }
 
 function nextSeason() {
-  currentSeason++;
-  startSeason();
-  renderLeague();
+  season++;
+  players.forEach(p => {
+    p.wins = 0;
+    p.losses = 0;
+  });
+  render();
 }
 
-// =====================
-// Tournament Logic
-// =====================
+function render() {
+  document.getElementById("seasonNumber").textContent = season;
 
-function addTournamentPlayer() {
-  const input = document.getElementById("tournamentName");
-  const name = input.value.trim();
-  if (!name) return;
-
-  tournamentPlayers.push(name);
-  input.value = "";
-  renderTournament();
+  renderStandings();
+  renderSeasonRecords();
+  renderMatchHistory();
 }
 
-function startTournament() {
-  if (tournamentPlayers.length < 2) return;
+function renderStandings() {
+  const table = document.getElementById("standings");
+  table.innerHTML = `
+    <tr>
+      <th>Player</th>
+      <th>MMR</th>
+      <th>W</th>
+      <th>L</th>
+    </tr>
+  `;
 
-  tournamentRounds = [];
-  currentRound = 0;
-  currentMatch = 0;
-
-  let round = shuffle([...tournamentPlayers]).map((p) => ({ player: p }));
-  tournamentRounds.push(round);
-
-  while (round.length > 1) {
-    const nextRound = [];
-    for (let i = 0; i < round.length; i += 2) {
-      nextRound.push({ player: null });
-    }
-    tournamentRounds.push(nextRound);
-    round = nextRound;
-  }
-
-  renderTournament();
-}
-
-function playNextTournamentMatch() {
-  if (currentRound >= tournamentRounds.length - 1) return;
-
-  const round = tournamentRounds[currentRound];
-  if (currentMatch >= round.length - 1) {
-    currentRound++;
-    currentMatch = 0;
-    return;
-  }
-
-  const a = round[currentMatch].player;
-  const b = round[currentMatch + 1].player;
-  if (!a || !b) return;
-
-  const winner = Math.random() > 0.5 ? a : b;
-  tournamentRounds[currentRound + 1][Math.floor(currentMatch / 2)].player =
-    winner;
-
-  currentMatch += 2;
-  renderTournament();
-}
-
-function resetTournament() {
-  tournamentPlayers = [];
-  tournamentRounds = [];
-  currentRound = 0;
-  currentMatch = 0;
-  renderTournament();
-}
-
-// =====================
-// Rendering
-// =====================
-
-function renderLeague() {
-  document.getElementById("seasonNumber").textContent = currentSeason;
-
-  const tbody = document.getElementById("leagueTable");
-  tbody.innerHTML = "";
-
-  const season = getCurrentSeason();
-
-  players
-    .slice()
-    .sort((a, b) => b.elo - a.elo)
-    .forEach((p) => {
-      const r = getRecord(season, p.id);
-      tbody.innerHTML += `
+  [...players]
+    .sort((a, b) => b.rating - a.rating)
+    .forEach(p => {
+      table.innerHTML += `
         <tr>
           <td>${p.name}</td>
-          <td>${p.elo}</td>
-          <td>${r.wins}</td>
-          <td>${r.losses}</td>
+          <td>${p.rating.toFixed(1)}</td>
+          <td>${p.wins}</td>
+          <td>${p.losses}</td>
         </tr>
       `;
     });
-
-  renderSeasonHistory();
 }
 
-function renderSeasonHistory() {
-  const div = document.getElementById("seasonHistory");
-  div.innerHTML = "";
+function renderSeasonRecords() {
+  const table = document.getElementById("seasonRecords");
+  table.innerHTML = `
+    <tr>
+      <th>Player</th>
+      <th>Wins</th>
+      <th>Losses</th>
+    </tr>
+  `;
 
-  seasons.forEach((s) => {
-    let html = `<div class="season-block"><strong>Season ${s.season}</strong><table>
-      <tr><th>Player</th><th>W</th><th>L</th></tr>`;
-
-    s.records.forEach((r) => {
-      const p = players.find((p) => p.id === r.playerId);
-      html += `<tr><td>${p.name}</td><td>${r.wins}</td><td>${r.losses}</td></tr>`;
-    });
-
-    html += "</table></div>";
-    div.innerHTML += html;
+  players.forEach(p => {
+    table.innerHTML += `
+      <tr>
+        <td>${p.name}</td>
+        <td>${p.wins}</td>
+        <td>${p.losses}</td>
+      </tr>
+    `;
   });
 }
 
-function renderTournament() {
-  const div = document.getElementById("bracket");
-  div.innerHTML = "";
+function renderMatchHistory() {
+  const list = document.getElementById("matchHistory");
+  list.innerHTML = "";
 
-  tournamentRounds.forEach((round, i) => {
-    let html = `<h4>Round ${i + 1}</h4><ul>`;
-    round.forEach((m) => {
-      html += `<li>${m.player ?? "—"}</li>`;
+  matches
+    .filter(m => m.season === season)
+    .forEach(m => {
+      const li = document.createElement("li");
+      li.textContent = `${m.winner} beat ${m.loser}`;
+      list.appendChild(li);
     });
-    html += "</ul>";
-    div.innerHTML += html;
-  });
 }
-
-// =====================
-// Utils
-// =====================
 
 function shuffle(arr) {
-  return [...arr].sort(() => Math.random() - 0.5);
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
 }
 
-renderLeague();
-renderTournament();
+render();
