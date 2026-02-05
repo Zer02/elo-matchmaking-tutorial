@@ -6315,6 +6315,333 @@ v0.20 → Supabase simulation (not public)
 
 You’re no longer experimenting — you’re designing a league system.
 
+### v.0.13.2
+**You removed the season match history and season records of previous seasons. Also can you improve the input so I can press enter when entering new players instead of having to click a button. This is v.0.13.2**
+
+Yep — good catch. That regression matters.
+v0.13.2 fixes both issues cleanly without adding new concepts.
+
+✅ What v0.13.2 Fixes
+
+1. Season history is now permanent
+
+You can view past seasons
+
+Each season stores:
+
+Final player records (W/L)
+
+Match history for that season
+
+Current season is just the latest entry
+
+2. Player input UX improved
+
+Press Enter to add a player
+
+Button still works (optional)
+
+3. No behavior changes
+
+MMR persists across seasons
+
+Wins/losses reset each season
+
+Same Elo math as before
+
+This version is purely state correctness + UX polish.
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>SPIN v0.13.2 – League Dashboard</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #0f172a;
+      color: #e5e7eb;
+      padding: 20px;
+    }
+    h1, h2, h3 {
+      margin-bottom: 10px;
+    }
+    section {
+      background: #020617;
+      padding: 15px;
+      margin-bottom: 20px;
+      border-radius: 8px;
+    }
+    button {
+      background: #2563eb;
+      color: white;
+      border: none;
+      padding: 8px 12px;
+      margin: 5px 0;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #1d4ed8;
+    }
+    input {
+      padding: 6px;
+      margin-right: 5px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+    th, td {
+      border-bottom: 1px solid #334155;
+      padding: 6px;
+      text-align: center;
+    }
+    th {
+      background: #020617;
+    }
+    .muted {
+      color: #94a3b8;
+      font-size: 0.9em;
+    }
+    ul {
+      margin: 5px 0 0 20px;
+    }
+  </style>
+</head>
+<body>
+
+<h1>🎾 SPIN League – v0.13.2</h1>
+
+<section>
+  <h2>Add Player</h2>
+  <input id="playerName" placeholder="Player name" />
+  <button onclick="addPlayer()">Add</button>
+  <div class="muted">Press Enter to add</div>
+</section>
+
+<section>
+  <h2>League Controls</h2>
+  <button onclick="simulateMatch()">Simulate Match</button>
+  <button onclick="nextSeason()">Next Season</button>
+  <div class="muted">MMR persists · W/L resets each season</div>
+</section>
+
+<section>
+  <h2>Current Standings (Season <span id="seasonNumber"></span>)</h2>
+  <table id="standings"></table>
+</section>
+
+<section>
+  <h2>Season History</h2>
+  <div id="seasonHistory"></div>
+</section>
+
+<script src="app.js"></script>
+</body>
+</html>
+```
+
+```js
+let season = 1;
+let players = [];
+let seasonHistory = [];
+
+const K = 32;
+
+const input = document.getElementById("playerName");
+input.addEventListener("keydown", e => {
+  if (e.key === "Enter") addPlayer();
+});
+
+function addPlayer() {
+  const name = input.value.trim();
+  if (!name) return;
+
+  players.push({
+    name,
+    rating: 1500,
+    wins: 0,
+    losses: 0
+  });
+
+  input.value = "";
+  render();
+}
+
+function expectedScore(a, b) {
+  return 1 / (1 + Math.pow(10, (b - a) / 400));
+}
+
+function simulateMatch() {
+  if (players.length < 2) return;
+
+  const [p1, p2] = shuffle([...players]).slice(0, 2);
+
+  const e1 = expectedScore(p1.rating, p2.rating);
+  const winner = Math.random() < e1 ? p1 : p2;
+  const loser = winner === p1 ? p2 : p1;
+
+  winner.rating += K * (1 - expectedScore(winner.rating, loser.rating));
+  loser.rating += K * (0 - expectedScore(loser.rating, winner.rating));
+
+  winner.wins++;
+  loser.losses++;
+
+  currentSeason().matches.push({
+    winner: winner.name,
+    loser: loser.name
+  });
+
+  render();
+}
+
+function nextSeason() {
+  finalizeSeason();
+
+  season++;
+  players.forEach(p => {
+    p.wins = 0;
+    p.losses = 0;
+  });
+
+  seasonHistory.push({
+    season,
+    records: [],
+    matches: []
+  });
+
+  render();
+}
+
+function finalizeSeason() {
+  seasonHistory.push({
+    season,
+    records: players.map(p => ({
+      name: p.name,
+      wins: p.wins,
+      losses: p.losses,
+      rating: p.rating.toFixed(1)
+    })),
+    matches: [...currentSeason().matches]
+  });
+}
+
+function currentSeason() {
+  let s = seasonHistory.find(s => s.season === season);
+  if (!s) {
+    s = { season, records: [], matches: [] };
+    seasonHistory.push(s);
+  }
+  return s;
+}
+
+function render() {
+  document.getElementById("seasonNumber").textContent = season;
+  renderStandings();
+  renderSeasonHistory();
+}
+
+function renderStandings() {
+  const table = document.getElementById("standings");
+  table.innerHTML = `
+    <tr>
+      <th>Player</th>
+      <th>MMR</th>
+      <th>W</th>
+      <th>L</th>
+    </tr>
+  `;
+
+  [...players]
+    .sort((a, b) => b.rating - a.rating)
+    .forEach(p => {
+      table.innerHTML += `
+        <tr>
+          <td>${p.name}</td>
+          <td>${p.rating.toFixed(1)}</td>
+          <td>${p.wins}</td>
+          <td>${p.losses}</td>
+        </tr>
+      `;
+    });
+}
+
+function renderSeasonHistory() {
+  const container = document.getElementById("seasonHistory");
+  container.innerHTML = "";
+
+  seasonHistory
+    .filter(s => s.records.length > 0)
+    .forEach(s => {
+      const div = document.createElement("div");
+      div.innerHTML = `
+        <h3>Season ${s.season}</h3>
+        <table>
+          <tr>
+            <th>Player</th>
+            <th>W</th>
+            <th>L</th>
+            <th>Final MMR</th>
+          </tr>
+          ${s.records.map(r => `
+            <tr>
+              <td>${r.name}</td>
+              <td>${r.wins}</td>
+              <td>${r.losses}</td>
+              <td>${r.rating}</td>
+            </tr>
+          `).join("")}
+        </table>
+        <strong>Matches</strong>
+        <ul>
+          ${s.matches.map(m => `<li>${m.winner} beat ${m.loser}</li>`).join("")}
+        </ul>
+      `;
+      container.appendChild(div);
+    });
+}
+
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+render();
+```
+🧭 Why This Matters Architecturally
+
+This version quietly locks in something important:
+
+SPIN now treats seasons as immutable historical objects.
+
+That’s:
+
+DAO-friendly
+
+Audit-friendly
+
+Dispute-friendly
+
+Future Supabase–ready
+
+From here forward, no version should ever delete history again — only append.
+
+Natural next steps (no rush)
+
+v0.14 → H2H table per season
+
+v0.15 → Provisional / placement rating logic
+
+v0.16 → Matchmaking bias (avoid repeats)
+
+v0.20 → Supabase mirror (still private)
+
 <!-- 
 FORMAT START
 

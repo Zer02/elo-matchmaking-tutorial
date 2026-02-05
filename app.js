@@ -1,11 +1,16 @@
 let season = 1;
 let players = [];
-let matches = [];
+let seasonHistory = [];
 
 const K = 32;
 
+const input = document.getElementById("playerName");
+input.addEventListener("keydown", e => {
+  if (e.key === "Enter") addPlayer();
+});
+
 function addPlayer() {
-  const name = document.getElementById("playerName").value.trim();
+  const name = input.value.trim();
   if (!name) return;
 
   players.push({
@@ -15,7 +20,7 @@ function addPlayer() {
     losses: 0
   });
 
-  document.getElementById("playerName").value = "";
+  input.value = "";
   render();
 }
 
@@ -38,8 +43,7 @@ function simulateMatch() {
   winner.wins++;
   loser.losses++;
 
-  matches.push({
-    season,
+  currentSeason().matches.push({
     winner: winner.name,
     loser: loser.name
   });
@@ -48,20 +52,49 @@ function simulateMatch() {
 }
 
 function nextSeason() {
+  finalizeSeason();
+
   season++;
   players.forEach(p => {
     p.wins = 0;
     p.losses = 0;
   });
+
+  seasonHistory.push({
+    season,
+    records: [],
+    matches: []
+  });
+
   render();
+}
+
+function finalizeSeason() {
+  seasonHistory.push({
+    season,
+    records: players.map(p => ({
+      name: p.name,
+      wins: p.wins,
+      losses: p.losses,
+      rating: p.rating.toFixed(1)
+    })),
+    matches: [...currentSeason().matches]
+  });
+}
+
+function currentSeason() {
+  let s = seasonHistory.find(s => s.season === season);
+  if (!s) {
+    s = { season, records: [], matches: [] };
+    seasonHistory.push(s);
+  }
+  return s;
 }
 
 function render() {
   document.getElementById("seasonNumber").textContent = season;
-
   renderStandings();
-  renderSeasonRecords();
-  renderMatchHistory();
+  renderSeasonHistory();
 }
 
 function renderStandings() {
@@ -89,37 +122,38 @@ function renderStandings() {
     });
 }
 
-function renderSeasonRecords() {
-  const table = document.getElementById("seasonRecords");
-  table.innerHTML = `
-    <tr>
-      <th>Player</th>
-      <th>Wins</th>
-      <th>Losses</th>
-    </tr>
-  `;
+function renderSeasonHistory() {
+  const container = document.getElementById("seasonHistory");
+  container.innerHTML = "";
 
-  players.forEach(p => {
-    table.innerHTML += `
-      <tr>
-        <td>${p.name}</td>
-        <td>${p.wins}</td>
-        <td>${p.losses}</td>
-      </tr>
-    `;
-  });
-}
-
-function renderMatchHistory() {
-  const list = document.getElementById("matchHistory");
-  list.innerHTML = "";
-
-  matches
-    .filter(m => m.season === season)
-    .forEach(m => {
-      const li = document.createElement("li");
-      li.textContent = `${m.winner} beat ${m.loser}`;
-      list.appendChild(li);
+  seasonHistory
+    .filter(s => s.records.length > 0)
+    .forEach(s => {
+      const div = document.createElement("div");
+      div.innerHTML = `
+        <h3>Season ${s.season}</h3>
+        <table>
+          <tr>
+            <th>Player</th>
+            <th>W</th>
+            <th>L</th>
+            <th>Final MMR</th>
+          </tr>
+          ${s.records.map(r => `
+            <tr>
+              <td>${r.name}</td>
+              <td>${r.wins}</td>
+              <td>${r.losses}</td>
+              <td>${r.rating}</td>
+            </tr>
+          `).join("")}
+        </table>
+        <strong>Matches</strong>
+        <ul>
+          ${s.matches.map(m => `<li>${m.winner} beat ${m.loser}</li>`).join("")}
+        </ul>
+      `;
+      container.appendChild(div);
     });
 }
 
