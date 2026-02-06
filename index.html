@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>SPIN v0.13.2 – League Dashboard</title>
+  <title>SPIN v0.14 – League Dashboard</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -48,42 +48,26 @@
     th {
       background: #020617;
     }
+    a {
+      color: #60a5fa;
+      cursor: pointer;
+      text-decoration: none;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
     .muted {
       color: #94a3b8;
       font-size: 0.9em;
     }
     ul {
-      margin: 5px 0 0 20px;
+      margin-left: 20px;
     }
   </style>
 </head>
 <body>
 
-<h1>🎾 SPIN League – v0.13.2</h1>
-
-<section>
-  <h2>Add Player</h2>
-  <input id="playerName" placeholder="Player name" />
-  <button onclick="addPlayer()">Add</button>
-  <div class="muted">Press Enter to add</div>
-</section>
-
-<section>
-  <h2>League Controls</h2>
-  <button onclick="simulateMatch()">Simulate Match</button>
-  <button onclick="nextSeason()">Next Season</button>
-  <div class="muted">MMR persists · W/L resets each season</div>
-</section>
-
-<section>
-  <h2>Current Standings (Season <span id="seasonNumber"></span>)</h2>
-  <table id="standings"></table>
-</section>
-
-<section>
-  <h2>Season History</h2>
-  <div id="seasonHistory"></div>
-</section>
+<div id="app"></div>
 
 <script src="app.js"></script>
 </body>
