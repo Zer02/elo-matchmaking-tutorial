@@ -8,6 +8,8 @@ const app = document.getElementById("app");
 window.addEventListener("hashchange", render);
 window.addEventListener("load", render);
 
+/* ---------- CORE ---------- */
+
 function addPlayer(name) {
   players.push({
     name,
@@ -44,18 +46,6 @@ function simulateMatch() {
 }
 
 function nextSeason() {
-  finalizeSeason();
-  season++;
-
-  players.forEach((p) => {
-    p.wins = 0;
-    p.losses = 0;
-  });
-
-  render();
-}
-
-function finalizeSeason() {
   seasonHistory.push({
     season,
     records: players.map((p) => ({
@@ -66,6 +56,14 @@ function finalizeSeason() {
     })),
     matches: [...currentSeason().matches],
   });
+
+  season++;
+  players.forEach((p) => {
+    p.wins = 0;
+    p.losses = 0;
+  });
+
+  render();
 }
 
 function currentSeason() {
@@ -77,13 +75,12 @@ function currentSeason() {
   return s;
 }
 
-/* ---------- RENDERING ---------- */
+/* ---------- RENDER ---------- */
 
 function render() {
   const hash = location.hash || "#league";
-
   if (hash.startsWith("#player/")) {
-    renderPlayerProfile(decodeURIComponent(hash.split("/")[1]));
+    renderProfile(decodeURIComponent(hash.split("/")[1]));
   } else {
     renderLeague();
   }
@@ -91,19 +88,16 @@ function render() {
 
 function renderLeague() {
   app.innerHTML = `
-    <h1>🎾 SPIN League – v0.14</h1>
+    <h1>🎾 SPIN v0.14.1</h1>
 
     <section>
-      <h2>Add Player</h2>
-      <input id="playerInput" placeholder="Player name" />
-      <button onclick="handleAdd()">Add</button>
+      <input id="playerInput" placeholder="Add player" />
     </section>
 
     <section>
-      <h2>League Controls</h2>
       <button onclick="simulateMatch()">Simulate Match</button>
       <button onclick="nextSeason()">Next Season</button>
-      <div class="muted">Season ${season} · MMR persists</div>
+      <div>Season ${season}</div>
     </section>
 
     <section>
@@ -125,28 +119,36 @@ function renderLeague() {
           .join("")}
       </table>
     </section>
+
+    <section>
+      <h2>Season History</h2>
+      ${seasonHistory
+        .filter((s) => s.records)
+        .map(
+          (s) => `
+          <h3>Season ${s.season}</h3>
+          <ul>
+            ${s.matches.map((m) => `<li>${m.winner} beat ${m.loser}</li>`).join("")}
+          </ul>
+        `,
+        )
+        .join("")}
+    </section>
   `;
 
-  document.getElementById("playerInput").addEventListener("keydown", (e) => {
-    if (e.key === "Enter") handleAdd();
+  const input = document.getElementById("playerInput");
+  input.focus();
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && input.value.trim()) {
+      addPlayer(input.value.trim());
+      input.value = "";
+      input.focus();
+      render();
+    }
   });
 }
 
-function handleAdd() {
-  const input = document.getElementById("playerInput");
-  if (!input.value.trim()) return;
-  addPlayer(input.value.trim());
-  input.value = "";
-  render();
-}
-
-function renderPlayerProfile(name) {
-  const player = players.find((p) => p.name === name);
-  if (!player) {
-    location.hash = "#league";
-    return;
-  }
-
+function renderProfile(name) {
   const matches = seasonHistory.flatMap((s) =>
     (s.matches || [])
       .filter((m) => m.winner === name || m.loser === name)
@@ -154,10 +156,8 @@ function renderPlayerProfile(name) {
   );
 
   app.innerHTML = `
-    <button onclick="location.hash='#league'">← Back to League</button>
-
-    <h1>${player.name}</h1>
-    <p><strong>Current MMR:</strong> ${player.rating.toFixed(1)}</p>
+    <button onclick="location.hash='#league'">← Back</button>
+    <h1>${name}</h1>
 
     <section>
       <h2>Match History</h2>
@@ -173,7 +173,7 @@ function renderPlayerProfile(name) {
           </li>
         `,
             )
-            .join("") || "<li>No matches yet</li>"
+            .join("") || "<li>No matches</li>"
         }
       </ul>
     </section>

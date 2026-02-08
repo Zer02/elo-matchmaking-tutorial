@@ -6987,7 +6987,7 @@ v0.17 → Match quality score
 
 v0.20 → Supabase mirror (private)
 
-<!-- 
+
 ### v.0.14.1
 **Not bad, but you changed some functionality from the previous version that is missing: input is worse (can't enter many people and press enter), and season history is worse**
 
