@@ -17,7 +17,8 @@ function createPlayer(name) {
     seasonWins: 0,
     seasonLosses: 0,
     careerWins: 0,
-    careerLosses: 0
+    careerLosses: 0,
+    eloHistory: [{ season: 1, rating: 1500 }],
   };
 }
 
@@ -42,18 +43,22 @@ function simulateMatch() {
   if (players.length < 2) return;
 
   const [p1, p2] = shuffle([...players]).slice(0, 2);
-  const winner = Math.random() < expectedScore(p1.rating, p2.rating) ? p1 : p2;
+  const p1Expected = expectedScore(p1.rating, p2.rating);
+  const winner = Math.random() < p1Expected ? p1 : p2;
   const loser = winner === p1 ? p2 : p1;
 
   winner.rating += K * (1 - expectedScore(winner.rating, loser.rating));
   loser.rating += K * (0 - expectedScore(loser.rating, winner.rating));
+
+  winner.eloHistory.push({ season, rating: winner.rating });
+  loser.eloHistory.push({ season, rating: loser.rating });
 
   recordWin(winner, loser);
 
   currentSeason().matches.push({
     season,
     winner: winner.name,
-    loser: loser.name
+    loser: loser.name,
   });
 
   render();
@@ -62,17 +67,17 @@ function simulateMatch() {
 function nextSeason() {
   seasonHistory.push({
     season,
-    records: players.map(p => ({
+    records: players.map((p) => ({
       name: p.name,
       wins: p.seasonWins,
       losses: p.seasonLosses,
-      rating: p.rating.toFixed(1)
+      rating: p.rating.toFixed(1),
     })),
-    matches: [...currentSeason().matches]
+    matches: [...currentSeason().matches],
   });
 
   season++;
-  players.forEach(p => {
+  players.forEach((p) => {
     p.seasonWins = 0;
     p.seasonLosses = 0;
   });
@@ -81,7 +86,7 @@ function nextSeason() {
 }
 
 function currentSeason() {
-  let s = seasonHistory.find(s => s.season === season);
+  let s = seasonHistory.find((s) => s.season === season);
   if (!s) {
     s = { season, matches: [] };
     seasonHistory.push(s);
@@ -102,10 +107,11 @@ function render() {
 
 function renderLeague() {
   app.innerHTML = `
-    <h1>🎾 SPIN v0.14.2</h1>
+    <h1>🎾 SPIN v0.14.3</h1>
 
     <section>
-      <input id="playerInput" placeholder="Add player and press Enter" />
+      <input id="playerInput" placeholder="Add player name" />
+      <button id="addPlayerBtn">Add Player</button>
     </section>
 
     <section>
@@ -126,9 +132,11 @@ function renderLeague() {
         </tr>
         ${players
           .sort((a, b) => b.rating - a.rating)
-          .map(p => {
+          .map((p) => {
             const total = p.careerWins + p.careerLosses;
-            const winPct = total ? ((p.careerWins / total) * 100).toFixed(1) : "—";
+            const winPct = total
+              ? ((p.careerWins / total) * 100).toFixed(1)
+              : "—";
             return `
               <tr>
                 <td><a href="#player/${encodeURIComponent(p.name)}">${p.name}</a></td>
@@ -138,48 +146,58 @@ function renderLeague() {
                 <td>${winPct}%</td>
               </tr>
             `;
-          }).join("")}
+          })
+          .join("")}
       </table>
     </section>
 
     <section>
       <h2>Season History</h2>
       ${seasonHistory
-        .filter(s => s.records)
-        .map(s => `
+        .filter((s) => s.records)
+        .map(
+          (s) => `
           <h3>Season ${s.season}</h3>
           <ul>
-            ${s.matches.map(m => `<li>${m.winner} beat ${m.loser}</li>`).join("")}
+            ${s.matches.map((m) => `<li>${m.winner} beat ${m.loser}</li>`).join("")}
           </ul>
-        `).join("")}
+        `,
+        )
+        .join("")}
     </section>
   `;
 
   const input = document.getElementById("playerInput");
+  const btn = document.getElementById("addPlayerBtn");
+
+  function submit() {
+    if (!input.value.trim()) return;
+    addPlayer(input.value.trim());
+    input.value = "";
+    input.focus();
+    render();
+  }
+
   input.focus();
-  input.addEventListener("keydown", e => {
-    if (e.key === "Enter" && input.value.trim()) {
-      addPlayer(input.value.trim());
-      input.value = "";
-      input.focus();
-      render();
-    }
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") submit();
   });
+  btn.addEventListener("click", submit);
 }
 
 function renderProfile(name) {
-  const player = players.find(p => p.name === name);
-  if (!player) return location.hash = "#league";
+  const player = players.find((p) => p.name === name);
+  if (!player) return (location.hash = "#league");
 
   const totalMatches = player.careerWins + player.careerLosses;
   const winPct = totalMatches
     ? ((player.careerWins / totalMatches) * 100).toFixed(1)
     : "—";
 
-  const matches = seasonHistory.flatMap(s =>
-    (s.matches || []).filter(
-      m => m.winner === name || m.loser === name
-    ).map(m => ({ ...m, season: s.season }))
+  const matches = seasonHistory.flatMap((s) =>
+    (s.matches || [])
+      .filter((m) => m.winner === name || m.loser === name)
+      .map((m) => ({ ...m, season: s.season })),
   );
 
   app.innerHTML = `
@@ -190,18 +208,55 @@ function renderProfile(name) {
     <p><strong>Career:</strong> ${player.careerWins}-${player.careerLosses} (${winPct}%)</p>
 
     <section>
+      <canvas id="eloChart" height="200"></canvas>
+    </section>
+
+    <section>
       <h2>Match History</h2>
       <ul>
-        ${matches.map(m => `
+        ${
+          matches
+            .map(
+              (m) => `
           <li>
             Season ${m.season}: 
             ${m.winner === name ? "Won vs" : "Lost to"} 
             ${m.winner === name ? m.loser : m.winner}
           </li>
-        `).join("") || "<li>No matches</li>"}
+        `,
+            )
+            .join("") || "<li>No matches</li>"
+        }
       </ul>
     </section>
   `;
+
+  renderEloChart(player);
+}
+
+/* ---------- CHART ---------- */
+
+function renderEloChart(player) {
+  const ctx = document.getElementById("eloChart").getContext("2d");
+
+  new Chart(ctx, {
+    type: "line",
+    data: {
+      labels: player.eloHistory.map((h, i) => `Match ${i}`),
+      datasets: [
+        {
+          label: "MMR",
+          data: player.eloHistory.map((h) => h.rating.toFixed(1)),
+          borderWidth: 2,
+          tension: 0.3,
+        },
+      ],
+    },
+    options: {
+      plugins: { legend: { display: false } },
+      scales: { y: { beginAtZero: false } },
+    },
+  });
 }
 
 /* ---------- UTIL ---------- */

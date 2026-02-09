@@ -7653,6 +7653,380 @@ v0.16 → Provisional / placement ratings
 
 v0.17 → Match quality / confidence score
 
+### v.0.14.3
+**Minor tweaks for v.0.14.3: add a button for entering names (keep enter for submitting too) and add an MMR/elo graph for player profiles to give them an idea of how they're performing**
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>SPIN v0.14.3</title>
+
+  <!-- Chart.js for ELO graph -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #0f172a;
+      color: #e5e7eb;
+      padding: 20px;
+    }
+    section {
+      background: #020617;
+      padding: 15px;
+      margin-bottom: 20px;
+      border-radius: 8px;
+    }
+    input {
+      padding: 6px;
+    }
+    button {
+      background: #2563eb;
+      color: white;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-left: 6px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+    th, td {
+      border-bottom: 1px solid #334155;
+      padding: 6px;
+      text-align: center;
+    }
+    a {
+      color: #60a5fa;
+      cursor: pointer;
+    }
+    ul {
+      margin-left: 20px;
+    }
+    .muted {
+      color: #94a3b8;
+      font-size: 0.85em;
+    }
+  </style>
+</head>
+<body>
+
+<div id="app"></div>
+
+<script src="app.js"></script>
+</body>
+</html>
+```
+
+```js
+let season = 1;
+let players = [];
+let seasonHistory = [];
+
+const K = 32;
+const app = document.getElementById("app");
+
+window.addEventListener("hashchange", render);
+window.addEventListener("load", render);
+
+/* ---------- PLAYER + STATS ---------- */
+
+function createPlayer(name) {
+  return {
+    name,
+    rating: 1500,
+    seasonWins: 0,
+    seasonLosses: 0,
+    careerWins: 0,
+    careerLosses: 0,
+    eloHistory: [{ season: 1, rating: 1500 }],
+  };
+}
+
+function addPlayer(name) {
+  players.push(createPlayer(name));
+}
+
+function recordWin(winner, loser) {
+  winner.seasonWins++;
+  loser.seasonLosses++;
+  winner.careerWins++;
+  loser.careerLosses++;
+}
+
+/* ---------- MATCH LOGIC ---------- */
+
+function expectedScore(a, b) {
+  return 1 / (1 + Math.pow(10, (b - a) / 400));
+}
+
+function simulateMatch() {
+  if (players.length < 2) return;
+
+  const [p1, p2] = shuffle([...players]).slice(0, 2);
+  const p1Expected = expectedScore(p1.rating, p2.rating);
+  const winner = Math.random() < p1Expected ? p1 : p2;
+  const loser = winner === p1 ? p2 : p1;
+
+  winner.rating += K * (1 - expectedScore(winner.rating, loser.rating));
+  loser.rating += K * (0 - expectedScore(loser.rating, winner.rating));
+
+  winner.eloHistory.push({ season, rating: winner.rating });
+  loser.eloHistory.push({ season, rating: loser.rating });
+
+  recordWin(winner, loser);
+
+  currentSeason().matches.push({
+    season,
+    winner: winner.name,
+    loser: loser.name,
+  });
+
+  render();
+}
+
+function nextSeason() {
+  seasonHistory.push({
+    season,
+    records: players.map((p) => ({
+      name: p.name,
+      wins: p.seasonWins,
+      losses: p.seasonLosses,
+      rating: p.rating.toFixed(1),
+    })),
+    matches: [...currentSeason().matches],
+  });
+
+  season++;
+  players.forEach((p) => {
+    p.seasonWins = 0;
+    p.seasonLosses = 0;
+  });
+
+  render();
+}
+
+function currentSeason() {
+  let s = seasonHistory.find((s) => s.season === season);
+  if (!s) {
+    s = { season, matches: [] };
+    seasonHistory.push(s);
+  }
+  return s;
+}
+
+/* ---------- RENDER ---------- */
+
+function render() {
+  const hash = location.hash || "#league";
+  if (hash.startsWith("#player/")) {
+    renderProfile(decodeURIComponent(hash.split("/")[1]));
+  } else {
+    renderLeague();
+  }
+}
+
+function renderLeague() {
+  app.innerHTML = `
+    <h1>🎾 SPIN v0.14.3</h1>
+
+    <section>
+      <input id="playerInput" placeholder="Add player name" />
+      <button id="addPlayerBtn">Add Player</button>
+    </section>
+
+    <section>
+      <button onclick="simulateMatch()">Simulate Match</button>
+      <button onclick="nextSeason()">Next Season</button>
+      <div class="muted">Season ${season} · MMR persists</div>
+    </section>
+
+    <section>
+      <h2>Standings</h2>
+      <table>
+        <tr>
+          <th>Player</th>
+          <th>MMR</th>
+          <th>Season W-L</th>
+          <th>Career W-L</th>
+          <th>Win %</th>
+        </tr>
+        ${players
+          .sort((a, b) => b.rating - a.rating)
+          .map((p) => {
+            const total = p.careerWins + p.careerLosses;
+            const winPct = total
+              ? ((p.careerWins / total) * 100).toFixed(1)
+              : "—";
+            return `
+              <tr>
+                <td><a href="#player/${encodeURIComponent(p.name)}">${p.name}</a></td>
+                <td>${p.rating.toFixed(1)}</td>
+                <td>${p.seasonWins}-${p.seasonLosses}</td>
+                <td>${p.careerWins}-${p.careerLosses}</td>
+                <td>${winPct}%</td>
+              </tr>
+            `;
+          })
+          .join("")}
+      </table>
+    </section>
+
+    <section>
+      <h2>Season History</h2>
+      ${seasonHistory
+        .filter((s) => s.records)
+        .map(
+          (s) => `
+          <h3>Season ${s.season}</h3>
+          <ul>
+            ${s.matches.map((m) => `<li>${m.winner} beat ${m.loser}</li>`).join("")}
+          </ul>
+        `,
+        )
+        .join("")}
+    </section>
+  `;
+
+  const input = document.getElementById("playerInput");
+  const btn = document.getElementById("addPlayerBtn");
+
+  function submit() {
+    if (!input.value.trim()) return;
+    addPlayer(input.value.trim());
+    input.value = "";
+    input.focus();
+    render();
+  }
+
+  input.focus();
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") submit();
+  });
+  btn.addEventListener("click", submit);
+}
+
+function renderProfile(name) {
+  const player = players.find((p) => p.name === name);
+  if (!player) return (location.hash = "#league");
+
+  const totalMatches = player.careerWins + player.careerLosses;
+  const winPct = totalMatches
+    ? ((player.careerWins / totalMatches) * 100).toFixed(1)
+    : "—";
+
+  const matches = seasonHistory.flatMap((s) =>
+    (s.matches || [])
+      .filter((m) => m.winner === name || m.loser === name)
+      .map((m) => ({ ...m, season: s.season })),
+  );
+
+  app.innerHTML = `
+    <button onclick="location.hash='#league'">← Back</button>
+
+    <h1>${player.name}</h1>
+    <p><strong>MMR:</strong> ${player.rating.toFixed(1)}</p>
+    <p><strong>Career:</strong> ${player.careerWins}-${player.careerLosses} (${winPct}%)</p>
+
+    <section>
+      <canvas id="eloChart" height="200"></canvas>
+    </section>
+
+    <section>
+      <h2>Match History</h2>
+      <ul>
+        ${
+          matches
+            .map(
+              (m) => `
+          <li>
+            Season ${m.season}: 
+            ${m.winner === name ? "Won vs" : "Lost to"} 
+            ${m.winner === name ? m.loser : m.winner}
+          </li>
+        `,
+            )
+            .join("") || "<li>No matches</li>"
+        }
+      </ul>
+    </section>
+  `;
+
+  renderEloChart(player);
+}
+
+/* ---------- CHART ---------- */
+
+function renderEloChart(player) {
+  const ctx = document.getElementById("eloChart").getContext("2d");
+
+  new Chart(ctx, {
+    type: "line",
+    data: {
+      labels: player.eloHistory.map((h, i) => `Match ${i}`),
+      datasets: [
+        {
+          label: "MMR",
+          data: player.eloHistory.map((h) => h.rating.toFixed(1)),
+          borderWidth: 2,
+          tension: 0.3,
+        },
+      ],
+    },
+    options: {
+      plugins: { legend: { display: false } },
+      scales: { y: { beginAtZero: false } },
+    },
+  });
+}
+
+/* ---------- UTIL ---------- */
+
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+```
+
+<!-- 
+### v.0.14.4
+**Can you fix the styling of the graph so it isn't so massive? And while you're at it, can we refactor out all the styles into a separate css file?**
+Yep — both are good calls, and they’re safe refactors.
+We’ll do this cleanly without touching any logic.
+
+Goals for v0.14.4
+
+✅ Graph size fixed (contained, readable, not full-screen)
+
+✅ All styles moved to styles.css
+
+✅ No JS logic changes (only tiny chart config tweak)
+
+✅ App behavior remains identical
+
+Below are three files now:
+
+index.html
+
+styles.css
+
+app.js
+
+```html
+
+```
+
+```js
+
+```
 
 <!-- 
 FORMAT START
