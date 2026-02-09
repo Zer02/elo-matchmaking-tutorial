@@ -8,16 +8,31 @@ const app = document.getElementById("app");
 window.addEventListener("hashchange", render);
 window.addEventListener("load", render);
 
-/* ---------- CORE ---------- */
+/* ---------- PLAYER + STATS ---------- */
 
-function addPlayer(name) {
-  players.push({
+function createPlayer(name) {
+  return {
     name,
     rating: 1500,
-    wins: 0,
-    losses: 0,
-  });
+    seasonWins: 0,
+    seasonLosses: 0,
+    careerWins: 0,
+    careerLosses: 0
+  };
 }
+
+function addPlayer(name) {
+  players.push(createPlayer(name));
+}
+
+function recordWin(winner, loser) {
+  winner.seasonWins++;
+  loser.seasonLosses++;
+  winner.careerWins++;
+  loser.careerLosses++;
+}
+
+/* ---------- MATCH LOGIC ---------- */
 
 function expectedScore(a, b) {
   return 1 / (1 + Math.pow(10, (b - a) / 400));
@@ -33,13 +48,12 @@ function simulateMatch() {
   winner.rating += K * (1 - expectedScore(winner.rating, loser.rating));
   loser.rating += K * (0 - expectedScore(loser.rating, winner.rating));
 
-  winner.wins++;
-  loser.losses++;
+  recordWin(winner, loser);
 
   currentSeason().matches.push({
     season,
     winner: winner.name,
-    loser: loser.name,
+    loser: loser.name
   });
 
   render();
@@ -48,26 +62,26 @@ function simulateMatch() {
 function nextSeason() {
   seasonHistory.push({
     season,
-    records: players.map((p) => ({
+    records: players.map(p => ({
       name: p.name,
-      wins: p.wins,
-      losses: p.losses,
-      rating: p.rating.toFixed(1),
+      wins: p.seasonWins,
+      losses: p.seasonLosses,
+      rating: p.rating.toFixed(1)
     })),
-    matches: [...currentSeason().matches],
+    matches: [...currentSeason().matches]
   });
 
   season++;
-  players.forEach((p) => {
-    p.wins = 0;
-    p.losses = 0;
+  players.forEach(p => {
+    p.seasonWins = 0;
+    p.seasonLosses = 0;
   });
 
   render();
 }
 
 function currentSeason() {
-  let s = seasonHistory.find((s) => s.season === season);
+  let s = seasonHistory.find(s => s.season === season);
   if (!s) {
     s = { season, matches: [] };
     seasonHistory.push(s);
@@ -88,57 +102,62 @@ function render() {
 
 function renderLeague() {
   app.innerHTML = `
-    <h1>🎾 SPIN v0.14.1</h1>
+    <h1>🎾 SPIN v0.14.2</h1>
 
     <section>
-      <input id="playerInput" placeholder="Add player" />
+      <input id="playerInput" placeholder="Add player and press Enter" />
     </section>
 
     <section>
       <button onclick="simulateMatch()">Simulate Match</button>
       <button onclick="nextSeason()">Next Season</button>
-      <div>Season ${season}</div>
+      <div class="muted">Season ${season} · MMR persists</div>
     </section>
 
     <section>
       <h2>Standings</h2>
       <table>
-        <tr><th>Player</th><th>MMR</th><th>W</th><th>L</th></tr>
+        <tr>
+          <th>Player</th>
+          <th>MMR</th>
+          <th>Season W-L</th>
+          <th>Career W-L</th>
+          <th>Win %</th>
+        </tr>
         ${players
           .sort((a, b) => b.rating - a.rating)
-          .map(
-            (p) => `
-            <tr>
-              <td><a href="#player/${encodeURIComponent(p.name)}">${p.name}</a></td>
-              <td>${p.rating.toFixed(1)}</td>
-              <td>${p.wins}</td>
-              <td>${p.losses}</td>
-            </tr>
-          `,
-          )
-          .join("")}
+          .map(p => {
+            const total = p.careerWins + p.careerLosses;
+            const winPct = total ? ((p.careerWins / total) * 100).toFixed(1) : "—";
+            return `
+              <tr>
+                <td><a href="#player/${encodeURIComponent(p.name)}">${p.name}</a></td>
+                <td>${p.rating.toFixed(1)}</td>
+                <td>${p.seasonWins}-${p.seasonLosses}</td>
+                <td>${p.careerWins}-${p.careerLosses}</td>
+                <td>${winPct}%</td>
+              </tr>
+            `;
+          }).join("")}
       </table>
     </section>
 
     <section>
       <h2>Season History</h2>
       ${seasonHistory
-        .filter((s) => s.records)
-        .map(
-          (s) => `
+        .filter(s => s.records)
+        .map(s => `
           <h3>Season ${s.season}</h3>
           <ul>
-            ${s.matches.map((m) => `<li>${m.winner} beat ${m.loser}</li>`).join("")}
+            ${s.matches.map(m => `<li>${m.winner} beat ${m.loser}</li>`).join("")}
           </ul>
-        `,
-        )
-        .join("")}
+        `).join("")}
     </section>
   `;
 
   const input = document.getElementById("playerInput");
   input.focus();
-  input.addEventListener("keydown", (e) => {
+  input.addEventListener("keydown", e => {
     if (e.key === "Enter" && input.value.trim()) {
       addPlayer(input.value.trim());
       input.value = "";
@@ -149,32 +168,37 @@ function renderLeague() {
 }
 
 function renderProfile(name) {
-  const matches = seasonHistory.flatMap((s) =>
-    (s.matches || [])
-      .filter((m) => m.winner === name || m.loser === name)
-      .map((m) => ({ ...m, season: s.season })),
+  const player = players.find(p => p.name === name);
+  if (!player) return location.hash = "#league";
+
+  const totalMatches = player.careerWins + player.careerLosses;
+  const winPct = totalMatches
+    ? ((player.careerWins / totalMatches) * 100).toFixed(1)
+    : "—";
+
+  const matches = seasonHistory.flatMap(s =>
+    (s.matches || []).filter(
+      m => m.winner === name || m.loser === name
+    ).map(m => ({ ...m, season: s.season }))
   );
 
   app.innerHTML = `
     <button onclick="location.hash='#league'">← Back</button>
-    <h1>${name}</h1>
+
+    <h1>${player.name}</h1>
+    <p><strong>MMR:</strong> ${player.rating.toFixed(1)}</p>
+    <p><strong>Career:</strong> ${player.careerWins}-${player.careerLosses} (${winPct}%)</p>
 
     <section>
       <h2>Match History</h2>
       <ul>
-        ${
-          matches
-            .map(
-              (m) => `
+        ${matches.map(m => `
           <li>
             Season ${m.season}: 
             ${m.winner === name ? "Won vs" : "Lost to"} 
             ${m.winner === name ? m.loser : m.winner}
           </li>
-        `,
-            )
-            .join("") || "<li>No matches</li>"
-        }
+        `).join("") || "<li>No matches</li>"}
       </ul>
     </section>
   `;
