@@ -107,7 +107,7 @@ function render() {
 
 function renderLeague() {
   app.innerHTML = `
-    <h1>🎾 SPIN v0.14.3</h1>
+    <h1>🎾 SPIN v0.14.4</h1>
 
     <section>
       <input id="playerInput" placeholder="Add player name" />
@@ -207,8 +207,8 @@ function renderProfile(name) {
     <p><strong>MMR:</strong> ${player.rating.toFixed(1)}</p>
     <p><strong>Career:</strong> ${player.careerWins}-${player.careerLosses} (${winPct}%)</p>
 
-    <section>
-      <canvas id="eloChart" height="200"></canvas>
+    <section class="profile-chart">
+      <canvas id="eloChart"></canvas>
     </section>
 
     <section>
@@ -242,17 +242,18 @@ function renderEloChart(player) {
   new Chart(ctx, {
     type: "line",
     data: {
-      labels: player.eloHistory.map((h, i) => `Match ${i}`),
+      labels: player.eloHistory.map((_, i) => `Match ${i}`),
       datasets: [
         {
-          label: "MMR",
-          data: player.eloHistory.map((h) => h.rating.toFixed(1)),
+          data: player.eloHistory.map((h) => h.rating),
           borderWidth: 2,
           tension: 0.3,
         },
       ],
     },
     options: {
+      responsive: true,
+      maintainAspectRatio: false,
       plugins: { legend: { display: false } },
       scales: { y: { beginAtZero: false } },
     },
