@@ -8393,6 +8393,201 @@ show season boundaries on chart
 
 export league history JSON (future Supabase seed)
 
+### v.0.15
+**v0.15 → Head-to-Head table (career + season)**
+
+Love this addition.
+This is the kind of feature that makes the league feel real.
+
+We’ll add a Head-to-Head table inside player profiles showing:
+
+✅ Career H2H vs every opponent
+
+✅ Current season H2H
+
+✅ Win %
+
+✅ Sorted by most played
+
+✅ Zero regression to existing behavior
+
+No changes to simulation logic. We derive everything from seasonHistory.
+
+🎾 SPIN v0.15 – Head-to-Head
+
+You only need to update app.js.
+index.html and styles.css stay the same.
+
+✅ Add this helper function (above renderProfile)
+```js
+function calculateHeadToHead(playerName) {
+  const h2h = {};
+
+  seasonHistory.forEach(s => {
+    (s.matches || []).forEach(m => {
+      if (m.winner !== playerName && m.loser !== playerName) return;
+
+      const opponent = m.winner === playerName ? m.loser : m.winner;
+      if (!h2h[opponent]) {
+        h2h[opponent] = {
+          opponent,
+          careerWins: 0,
+          careerLosses: 0,
+          seasonWins: 0,
+          seasonLosses: 0
+        };
+      }
+
+      const record = h2h[opponent];
+      const isWin = m.winner === playerName;
+
+      // Career
+      if (isWin) record.careerWins++;
+      else record.careerLosses++;
+
+      // Current season only
+      if (m.season === season) {
+        if (isWin) record.seasonWins++;
+        else record.seasonLosses++;
+      }
+    });
+  });
+
+  return Object.values(h2h).sort((a, b) =>
+    (b.careerWins + b.careerLosses) -
+    (a.careerWins + a.careerLosses)
+  );
+}
+
+✅ Update renderProfile()
+
+Replace your current renderProfile() with this version:
+
+function renderProfile(name) {
+  const player = players.find(p => p.name === name);
+  if (!player) return location.hash = "#league";
+
+  const totalMatches = player.careerWins + player.careerLosses;
+  const winPct = totalMatches
+    ? ((player.careerWins / totalMatches) * 100).toFixed(1)
+    : "—";
+
+  const matches = seasonHistory.flatMap(s =>
+    (s.matches || []).filter(
+      m => m.winner === name || m.loser === name
+    ).map(m => ({ ...m, season: s.season }))
+  );
+
+  const h2h = calculateHeadToHead(name);
+
+  app.innerHTML = `
+    <button onclick="location.hash='#league'">← Back</button>
+
+    <h1>${player.name}</h1>
+    <p><strong>MMR:</strong> ${player.rating.toFixed(1)}</p>
+    <p><strong>Career:</strong> ${player.careerWins}-${player.careerLosses} (${winPct}%)</p>
+
+    <section class="profile-chart">
+      <canvas id="eloChart"></canvas>
+    </section>
+
+    <section>
+      <h2>Head-to-Head</h2>
+      <table>
+        <tr>
+          <th>Opponent</th>
+          <th>Career</th>
+          <th>Season ${season}</th>
+          <th>Win %</th>
+        </tr>
+        ${h2h.map(r => {
+          const total = r.careerWins + r.careerLosses;
+          const pct = total ? ((r.careerWins / total) * 100).toFixed(1) : "—";
+          return `
+            <tr>
+              <td>${r.opponent}</td>
+              <td>${r.careerWins}-${r.careerLosses}</td>
+              <td>${r.seasonWins}-${r.seasonLosses}</td>
+              <td>${pct}%</td>
+            </tr>
+          `;
+        }).join("") || `
+          <tr>
+            <td colspan="4">No matches yet</td>
+          </tr>
+        `}
+      </table>
+    </section>
+
+    <section>
+      <h2>Match History</h2>
+      <ul>
+        ${matches.map(m => `
+          <li>
+            Season ${m.season}: 
+            ${m.winner === name ? "Won vs" : "Lost to"} 
+            ${m.winner === name ? m.loser : m.winner}
+          </li>
+        `).join("") || "<li>No matches</li>"}
+      </ul>
+    </section>
+  `;
+
+  renderEloChart(player);
+}
+```
+
+What This Adds Strategically
+
+This unlocks:
+
+Rivalries
+
+Dominance stats
+
+“Nemesis” detection
+
+Most played opponent
+
+Future: rivalry score multiplier 👀
+
+What You Now Have in SPIN
+
+League page:
+
+Standings
+
+Career stats
+
+Season stats
+
+Match history
+
+Multi-season persistence
+
+Profile page:
+
+Career overview
+
+ELO graph
+
+Match log
+
+Head-to-head breakdown
+
+That’s starting to feel like a real competitive system.
+
+If you want for v0.16, the natural evolutions are:
+
+🔥 Highlight biggest rival
+
+📈 Show best matchup
+
+🧠 Add performance vs higher-rated opponents
+
+🏆 Show win streaks
+
+You’re building something legitimately cool now.
 
 <!-- 
 FORMAT START

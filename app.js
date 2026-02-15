@@ -185,20 +185,61 @@ function renderLeague() {
   btn.addEventListener("click", submit);
 }
 
+function calculateHeadToHead(playerName) {
+  const h2h = {};
+
+  seasonHistory.forEach(s => {
+    (s.matches || []).forEach(m => {
+      if (m.winner !== playerName && m.loser !== playerName) return;
+
+      const opponent = m.winner === playerName ? m.loser : m.winner;
+      if (!h2h[opponent]) {
+        h2h[opponent] = {
+          opponent,
+          careerWins: 0,
+          careerLosses: 0,
+          seasonWins: 0,
+          seasonLosses: 0
+        };
+      }
+
+      const record = h2h[opponent];
+      const isWin = m.winner === playerName;
+
+      // Career
+      if (isWin) record.careerWins++;
+      else record.careerLosses++;
+
+      // Current season only
+      if (m.season === season) {
+        if (isWin) record.seasonWins++;
+        else record.seasonLosses++;
+      }
+    });
+  });
+
+  return Object.values(h2h).sort((a, b) =>
+    (b.careerWins + b.careerLosses) -
+    (a.careerWins + a.careerLosses)
+  );
+}
+
 function renderProfile(name) {
-  const player = players.find((p) => p.name === name);
-  if (!player) return (location.hash = "#league");
+  const player = players.find(p => p.name === name);
+  if (!player) return location.hash = "#league";
 
   const totalMatches = player.careerWins + player.careerLosses;
   const winPct = totalMatches
     ? ((player.careerWins / totalMatches) * 100).toFixed(1)
     : "—";
 
-  const matches = seasonHistory.flatMap((s) =>
-    (s.matches || [])
-      .filter((m) => m.winner === name || m.loser === name)
-      .map((m) => ({ ...m, season: s.season })),
+  const matches = seasonHistory.flatMap(s =>
+    (s.matches || []).filter(
+      m => m.winner === name || m.loser === name
+    ).map(m => ({ ...m, season: s.season }))
   );
+
+  const h2h = calculateHeadToHead(name);
 
   app.innerHTML = `
     <button onclick="location.hash='#league'">← Back</button>
@@ -212,21 +253,43 @@ function renderProfile(name) {
     </section>
 
     <section>
+      <h2>Head-to-Head</h2>
+      <table>
+        <tr>
+          <th>Opponent</th>
+          <th>Career</th>
+          <th>Season ${season}</th>
+          <th>Win %</th>
+        </tr>
+        ${h2h.map(r => {
+          const total = r.careerWins + r.careerLosses;
+          const pct = total ? ((r.careerWins / total) * 100).toFixed(1) : "—";
+          return `
+            <tr>
+              <td>${r.opponent}</td>
+              <td>${r.careerWins}-${r.careerLosses}</td>
+              <td>${r.seasonWins}-${r.seasonLosses}</td>
+              <td>${pct}%</td>
+            </tr>
+          `;
+        }).join("") || `
+          <tr>
+            <td colspan="4">No matches yet</td>
+          </tr>
+        `}
+      </table>
+    </section>
+
+    <section>
       <h2>Match History</h2>
       <ul>
-        ${
-          matches
-            .map(
-              (m) => `
+        ${matches.map(m => `
           <li>
             Season ${m.season}: 
             ${m.winner === name ? "Won vs" : "Lost to"} 
             ${m.winner === name ? m.loser : m.winner}
           </li>
-        `,
-            )
-            .join("") || "<li>No matches</li>"
-        }
+        `).join("") || "<li>No matches</li>"}
       </ul>
     </section>
   `;
