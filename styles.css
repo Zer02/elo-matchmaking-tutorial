@@ -60,3 +60,41 @@ ul {
   height: 220px;
   margin: 0 auto;
 }
+
+/* --- Profile Layout --- */
+
+.profile-header {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.profile-stats {
+  background: #020617;
+  padding: 15px;
+  border-radius: 8px;
+  min-width: 220px;
+}
+
+.profile-chart {
+  flex: 1;
+  max-width: 500px;
+  height: 220px;
+}
+
+.profile-section {
+  background: #020617;
+  padding: 15px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.profile-section h3 {
+  margin-top: 0;
+}
+
+select {
+  padding: 6px;
+  margin-bottom: 10px;
+}

@@ -185,114 +185,154 @@ function renderLeague() {
   btn.addEventListener("click", submit);
 }
 
-function calculateHeadToHead(playerName) {
+function calculateHeadToHead(playerName, selectedSeason = "career") {
   const h2h = {};
 
-  seasonHistory.forEach(s => {
-    (s.matches || []).forEach(m => {
+  seasonHistory.forEach((s) => {
+    (s.matches || []).forEach((m) => {
       if (m.winner !== playerName && m.loser !== playerName) return;
 
+      if (selectedSeason !== "career" && m.season !== selectedSeason) return;
+
       const opponent = m.winner === playerName ? m.loser : m.winner;
+
       if (!h2h[opponent]) {
         h2h[opponent] = {
           opponent,
-          careerWins: 0,
-          careerLosses: 0,
-          seasonWins: 0,
-          seasonLosses: 0
+          wins: 0,
+          losses: 0,
         };
       }
 
-      const record = h2h[opponent];
-      const isWin = m.winner === playerName;
-
-      // Career
-      if (isWin) record.careerWins++;
-      else record.careerLosses++;
-
-      // Current season only
-      if (m.season === season) {
-        if (isWin) record.seasonWins++;
-        else record.seasonLosses++;
+      if (m.winner === playerName) {
+        h2h[opponent].wins++;
+      } else {
+        h2h[opponent].losses++;
       }
     });
   });
 
-  return Object.values(h2h).sort((a, b) =>
-    (b.careerWins + b.careerLosses) -
-    (a.careerWins + a.careerLosses)
+  return Object.values(h2h).sort(
+    (a, b) => b.wins + b.losses - (a.wins + a.losses),
   );
 }
 
 function renderProfile(name) {
-  const player = players.find(p => p.name === name);
-  if (!player) return location.hash = "#league";
+  const player = players.find((p) => p.name === name);
+  if (!player) return (location.hash = "#league");
 
   const totalMatches = player.careerWins + player.careerLosses;
   const winPct = totalMatches
     ? ((player.careerWins / totalMatches) * 100).toFixed(1)
     : "—";
 
-  const matches = seasonHistory.flatMap(s =>
-    (s.matches || []).filter(
-      m => m.winner === name || m.loser === name
-    ).map(m => ({ ...m, season: s.season }))
-  );
+  const availableSeasons = [
+    ...new Set(
+      seasonHistory
+        .flatMap((s) => s.matches || [])
+        .filter((m) => m.winner === name || m.loser === name)
+        .map((m) => m.season),
+    ),
+  ].sort((a, b) => b - a);
 
-  const h2h = calculateHeadToHead(name);
+  const selectedSeason = window.selectedSeason || "career";
+  const h2h = calculateHeadToHead(name, selectedSeason);
+
+  const matches = seasonHistory.flatMap((s) =>
+    (s.matches || [])
+      .filter((m) => m.winner === name || m.loser === name)
+      .map((m) => ({ ...m, season: s.season })),
+  );
 
   app.innerHTML = `
     <button onclick="location.hash='#league'">← Back</button>
 
     <h1>${player.name}</h1>
-    <p><strong>MMR:</strong> ${player.rating.toFixed(1)}</p>
-    <p><strong>Career:</strong> ${player.careerWins}-${player.careerLosses} (${winPct}%)</p>
 
-    <section class="profile-chart">
-      <canvas id="eloChart"></canvas>
-    </section>
+    <div class="profile-header">
+      <div class="profile-stats">
+        <p><strong>MMR:</strong> ${player.rating.toFixed(1)}</p>
+        <p><strong>Career:</strong> ${player.careerWins}-${player.careerLosses}</p>
+        <p><strong>Win %:</strong> ${winPct}%</p>
+      </div>
 
-    <section>
-      <h2>Head-to-Head</h2>
+      <div class="profile-chart">
+        <canvas id="eloChart"></canvas>
+      </div>
+    </div>
+
+    <div class="profile-section">
+      <h3>Head-to-Head</h3>
+
+      <select id="seasonSelect">
+        <option value="career" ${selectedSeason === "career" ? "selected" : ""}>
+          Career
+        </option>
+        ${availableSeasons
+          .map(
+            (s) => `
+          <option value="${s}" ${selectedSeason === s ? "selected" : ""}>
+            Season ${s}
+          </option>
+        `,
+          )
+          .join("")}
+      </select>
+
       <table>
         <tr>
           <th>Opponent</th>
-          <th>Career</th>
-          <th>Season ${season}</th>
+          <th>Record</th>
           <th>Win %</th>
         </tr>
-        ${h2h.map(r => {
-          const total = r.careerWins + r.careerLosses;
-          const pct = total ? ((r.careerWins / total) * 100).toFixed(1) : "—";
-          return `
+        ${
+          h2h
+            .map((r) => {
+              const total = r.wins + r.losses;
+              const pct = total ? ((r.wins / total) * 100).toFixed(1) : "—";
+              return `
             <tr>
               <td>${r.opponent}</td>
-              <td>${r.careerWins}-${r.careerLosses}</td>
-              <td>${r.seasonWins}-${r.seasonLosses}</td>
+              <td>${r.wins}-${r.losses}</td>
               <td>${pct}%</td>
             </tr>
           `;
-        }).join("") || `
+            })
+            .join("") ||
+          `
           <tr>
-            <td colspan="4">No matches yet</td>
+            <td colspan="3">No matches</td>
           </tr>
-        `}
+        `
+        }
       </table>
-    </section>
+    </div>
 
-    <section>
-      <h2>Match History</h2>
+    <div class="profile-section">
+      <h3>Match History</h3>
       <ul>
-        ${matches.map(m => `
+        ${
+          matches
+            .map(
+              (m) => `
           <li>
             Season ${m.season}: 
             ${m.winner === name ? "Won vs" : "Lost to"} 
             ${m.winner === name ? m.loser : m.winner}
           </li>
-        `).join("") || "<li>No matches</li>"}
+        `,
+            )
+            .join("") || "<li>No matches</li>"
+        }
       </ul>
-    </section>
+    </div>
   `;
+
+  document.getElementById("seasonSelect").addEventListener("change", (e) => {
+    const value = e.target.value;
+    window.selectedSeason = value === "career" ? "career" : Number(value);
+    renderProfile(name);
+  });
 
   renderEloChart(player);
 }

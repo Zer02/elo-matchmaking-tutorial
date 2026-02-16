@@ -8589,6 +8589,270 @@ If you want for v0.16, the natural evolutions are:
 
 You’re building something legitimately cool now.
 
+### v.0.16
+**Can you fix the styling of the containers on the user profiles? The container is too big, maybe put it next to the elo graph? Also make it like the one on the home page, where it splits up seasons and spaces them out. And can you add a dropdown list so players can select the season and see different head to head records for each season?**
+
+Excellent. This is the right refinement phase.
+
+We’ll do v0.16 properly:
+
+What we're improving
+
+✅ Profile layout:
+
+Graph and stats side-by-side
+
+No oversized empty container
+
+✅ Head-to-Head styling:
+
+Split into clean sections (like Season History on home page)
+
+Proper spacing
+
+Cleaner visual hierarchy
+
+✅ Season dropdown:
+
+Select a season
+
+View H2H for that season only
+
+“Career” option included
+
+No simulation logic touched.
+No regression to league functionality.
+
+✅ 1️⃣ Update styles.css
+
+Add these new profile layout styles:
+
+/* --- Profile Layout --- */
+
+.profile-header {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.profile-stats {
+  background: #020617;
+  padding: 15px;
+  border-radius: 8px;
+  min-width: 220px;
+}
+
+.profile-chart {
+  flex: 1;
+  max-width: 500px;
+  height: 220px;
+}
+
+.profile-section {
+  background: #020617;
+  padding: 15px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.profile-section h3 {
+  margin-top: 0;
+}
+
+select {
+  padding: 6px;
+  margin-bottom: 10px;
+}
+
+✅ 2️⃣ Replace calculateHeadToHead() with season-aware version
+
+Replace your old function with this:
+
+function calculateHeadToHead(playerName, selectedSeason = "career") {
+  const h2h = {};
+
+  seasonHistory.forEach(s => {
+    (s.matches || []).forEach(m => {
+      if (m.winner !== playerName && m.loser !== playerName) return;
+
+      if (selectedSeason !== "career" && m.season !== selectedSeason) return;
+
+      const opponent = m.winner === playerName ? m.loser : m.winner;
+
+      if (!h2h[opponent]) {
+        h2h[opponent] = {
+          opponent,
+          wins: 0,
+          losses: 0
+        };
+      }
+
+      if (m.winner === playerName) {
+        h2h[opponent].wins++;
+      } else {
+        h2h[opponent].losses++;
+      }
+    });
+  });
+
+  return Object.values(h2h).sort((a, b) =>
+    (b.wins + b.losses) - (a.wins + a.losses)
+  );
+}
+
+✅ 3️⃣ Replace renderProfile() entirely
+
+This gives:
+
+Clean layout
+
+Dropdown season selector
+
+Proper spacing
+
+Graph + stats side by side
+
+function renderProfile(name) {
+  const player = players.find(p => p.name === name);
+  if (!player) return location.hash = "#league";
+
+  const totalMatches = player.careerWins + player.careerLosses;
+  const winPct = totalMatches
+    ? ((player.careerWins / totalMatches) * 100).toFixed(1)
+    : "—";
+
+  const availableSeasons = [...new Set(
+    seasonHistory
+      .flatMap(s => (s.matches || []))
+      .filter(m => m.winner === name || m.loser === name)
+      .map(m => m.season)
+  )].sort((a, b) => b - a);
+
+  const selectedSeason = window.selectedSeason || "career";
+  const h2h = calculateHeadToHead(name, selectedSeason);
+
+  const matches = seasonHistory.flatMap(s =>
+    (s.matches || []).filter(
+      m => m.winner === name || m.loser === name
+    ).map(m => ({ ...m, season: s.season }))
+  );
+
+  app.innerHTML = `
+    <button onclick="location.hash='#league'">← Back</button>
+
+    <h1>${player.name}</h1>
+
+    <div class="profile-header">
+      <div class="profile-stats">
+        <p><strong>MMR:</strong> ${player.rating.toFixed(1)}</p>
+        <p><strong>Career:</strong> ${player.careerWins}-${player.careerLosses}</p>
+        <p><strong>Win %:</strong> ${winPct}%</p>
+      </div>
+
+      <div class="profile-chart">
+        <canvas id="eloChart"></canvas>
+      </div>
+    </div>
+
+    <div class="profile-section">
+      <h3>Head-to-Head</h3>
+
+      <select id="seasonSelect">
+        <option value="career" ${selectedSeason === "career" ? "selected" : ""}>
+          Career
+        </option>
+        ${availableSeasons.map(s => `
+          <option value="${s}" ${selectedSeason === s ? "selected" : ""}>
+            Season ${s}
+          </option>
+        `).join("")}
+      </select>
+
+      <table>
+        <tr>
+          <th>Opponent</th>
+          <th>Record</th>
+          <th>Win %</th>
+        </tr>
+        ${h2h.map(r => {
+          const total = r.wins + r.losses;
+          const pct = total ? ((r.wins / total) * 100).toFixed(1) : "—";
+          return `
+            <tr>
+              <td>${r.opponent}</td>
+              <td>${r.wins}-${r.losses}</td>
+              <td>${pct}%</td>
+            </tr>
+          `;
+        }).join("") || `
+          <tr>
+            <td colspan="3">No matches</td>
+          </tr>
+        `}
+      </table>
+    </div>
+
+    <div class="profile-section">
+      <h3>Match History</h3>
+      <ul>
+        ${matches.map(m => `
+          <li>
+            Season ${m.season}: 
+            ${m.winner === name ? "Won vs" : "Lost to"} 
+            ${m.winner === name ? m.loser : m.winner}
+          </li>
+        `).join("") || "<li>No matches</li>"}
+      </ul>
+    </div>
+  `;
+
+  document.getElementById("seasonSelect").addEventListener("change", e => {
+    const value = e.target.value;
+    window.selectedSeason = value === "career" ? "career" : Number(value);
+    renderProfile(name);
+  });
+
+  renderEloChart(player);
+}
+
+What v0.16 Achieves
+
+Profile page now feels:
+
+Structured
+
+Professional
+
+Data-focused
+
+Not oversized
+
+More interactive
+
+And most importantly:
+
+You now have season-scoped analytics.
+
+Where This Is Heading
+
+You now have the foundation for:
+
+🏆 Best season badge
+
+🔥 Rival detection (most matches)
+
+💀 Nemesis detection (lowest win%)
+
+📊 Rating per season graph overlay
+
+This is no longer just a simulator.
+
+It’s becoming a competitive ecosystem.
+
+<!-- 
+v.0.16.1
+
 <!-- 
 FORMAT START
 
