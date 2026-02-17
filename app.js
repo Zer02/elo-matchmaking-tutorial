@@ -221,11 +221,10 @@ function renderProfile(name) {
   const player = players.find((p) => p.name === name);
   if (!player) return (location.hash = "#league");
 
-  const totalMatches = player.careerWins + player.careerLosses;
-  const winPct = totalMatches
-    ? ((player.careerWins / totalMatches) * 100).toFixed(1)
-    : "—";
+  // Default selected season is current season
+  const selectedSeason = window.selectedSeason || season;
 
+  // All seasons the player has matches in
   const availableSeasons = [
     ...new Set(
       seasonHistory
@@ -235,14 +234,23 @@ function renderProfile(name) {
     ),
   ].sort((a, b) => b - a);
 
-  const selectedSeason = window.selectedSeason || "career";
   const h2h = calculateHeadToHead(name, selectedSeason);
 
+  // Matches filtered by selected season
   const matches = seasonHistory.flatMap((s) =>
     (s.matches || [])
-      .filter((m) => m.winner === name || m.loser === name)
+      .filter(
+        (m) =>
+          (m.winner === name || m.loser === name) &&
+          (selectedSeason === "career" || m.season === selectedSeason),
+      )
       .map((m) => ({ ...m, season: s.season })),
   );
+
+  const totalMatches = player.careerWins + player.careerLosses;
+  const winPct = totalMatches
+    ? ((player.careerWins / totalMatches) * 100).toFixed(1)
+    : "—";
 
   app.innerHTML = `
     <button onclick="location.hash='#league'">← Back</button>
@@ -265,9 +273,6 @@ function renderProfile(name) {
       <h3>Head-to-Head</h3>
 
       <select id="seasonSelect">
-        <option value="career" ${selectedSeason === "career" ? "selected" : ""}>
-          Career
-        </option>
         ${availableSeasons
           .map(
             (s) => `
@@ -277,35 +282,52 @@ function renderProfile(name) {
         `,
           )
           .join("")}
+        <option value="career" ${selectedSeason === "career" ? "selected" : ""}>Career</option>
       </select>
 
-      <table>
-        <tr>
-          <th>Opponent</th>
-          <th>Record</th>
-          <th>Win %</th>
-        </tr>
-        ${
-          h2h
-            .map((r) => {
-              const total = r.wins + r.losses;
-              const pct = total ? ((r.wins / total) * 100).toFixed(1) : "—";
-              return `
-            <tr>
-              <td>${r.opponent}</td>
-              <td>${r.wins}-${r.losses}</td>
-              <td>${pct}%</td>
-            </tr>
+      ${availableSeasons
+        .filter((s) => selectedSeason === "career" || s === selectedSeason)
+        .map((s) => {
+          const seasonH2H = calculateHeadToHead(
+            name,
+            selectedSeason === "career" ? s : selectedSeason,
+          );
+          return `
+            <div class="season-h2h">
+              <h4>Season ${s}</h4>
+              <table>
+                <tr>
+                  <th>Opponent</th>
+                  <th>Record</th>
+                  <th>Win %</th>
+                </tr>
+                ${
+                  seasonH2H
+                    .map((r) => {
+                      const total = r.wins + r.losses;
+                      const pct = total
+                        ? ((r.wins / total) * 100).toFixed(1)
+                        : "—";
+                      return `
+                    <tr>
+                      <td>${r.opponent}</td>
+                      <td>${r.wins}-${r.losses}</td>
+                      <td>${pct}%</td>
+                    </tr>
+                  `;
+                    })
+                    .join("") ||
+                  `
+                  <tr>
+                    <td colspan="3">No matches</td>
+                  </tr>
+                `
+                }
+              </table>
+            </div>
           `;
-            })
-            .join("") ||
-          `
-          <tr>
-            <td colspan="3">No matches</td>
-          </tr>
-        `
-        }
-      </table>
+        })
+        .join("")}
     </div>
 
     <div class="profile-section">
