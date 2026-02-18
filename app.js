@@ -221,29 +221,26 @@ function renderProfile(name) {
   const player = players.find((p) => p.name === name);
   if (!player) return (location.hash = "#league");
 
-  // Default selected season is current season
+  // Reset dropdown to current season if undefined
   const selectedSeason = window.selectedSeason || season;
 
-  // All seasons the player has matches in
+  // Available seasons where the player has matches
   const availableSeasons = [
     ...new Set(
-      seasonHistory
-        .flatMap((s) => s.matches || [])
-        .filter((m) => m.winner === name || m.loser === name)
-        .map((m) => m.season),
+      seasonHistory.flatMap((s) =>
+        (s.matches || [])
+          .filter((m) => m.winner === name || m.loser === name)
+          .map(() => s.season),
+      ),
     ),
   ].sort((a, b) => b - a);
 
   const h2h = calculateHeadToHead(name, selectedSeason);
 
-  // Matches filtered by selected season
+  // Matches only for this player
   const matches = seasonHistory.flatMap((s) =>
     (s.matches || [])
-      .filter(
-        (m) =>
-          (m.winner === name || m.loser === name) &&
-          (selectedSeason === "career" || m.season === selectedSeason),
-      )
+      .filter((m) => m.winner === name || m.loser === name)
       .map((m) => ({ ...m, season: s.season })),
   );
 
@@ -253,7 +250,7 @@ function renderProfile(name) {
     : "—";
 
   app.innerHTML = `
-    <button onclick="location.hash='#league'">← Back</button>
+    <button onclick="location.hash='#league'; window.selectedSeason=undefined;">← Back</button>
 
     <h1>${player.name}</h1>
 
@@ -335,14 +332,17 @@ function renderProfile(name) {
       <ul>
         ${
           matches
+            .filter(
+              (m) => selectedSeason === "career" || m.season === selectedSeason,
+            )
             .map(
               (m) => `
-          <li>
-            Season ${m.season}: 
-            ${m.winner === name ? "Won vs" : "Lost to"} 
-            ${m.winner === name ? m.loser : m.winner}
-          </li>
-        `,
+            <li>
+              Season ${m.season}: 
+              ${m.winner === name ? "Won vs" : "Lost to"} 
+              ${m.winner === name ? m.loser : m.winner}
+            </li>
+          `,
             )
             .join("") || "<li>No matches</li>"
         }

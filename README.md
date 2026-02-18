@@ -8713,6 +8713,7 @@ Proper spacing
 
 Graph + stats side by side
 
+```js
 function renderProfile(name) {
   const player = players.find(p => p.name === name);
   if (!player) return location.hash = "#league";
@@ -8815,6 +8816,7 @@ function renderProfile(name) {
 
   renderEloChart(player);
 }
+```
 
 What v0.16 Achieves
 
@@ -8990,9 +8992,177 @@ Season-specific H2H tables → each season is a separate block with proper spaci
 
 Next step could be v0.17: adding graph overlays per season so players can see their MMR trend per season rather than just career cumulative.
 
-<!-- 
 ### v.0.16.2
-****
+**v.0.16.2 - When leaving a user's profile and going back to home page, reset the dropdown back to the current season. And on the user profile page, I think the match history section is bugged. It's somehow displaying all matches but I just want them to see their own match history**
+
+Perfect. These are solid refinements for v0.16.2. Here's how we’ll handle it:
+
+Goals for v0.16.2
+
+Reset dropdown: When leaving a profile, window.selectedSeason should reset so the next profile view defaults to the current season.
+
+Fix match history: Only show matches involving the current player, not all matches.
+
+✅ Updated renderProfile() for v0.16.2
+```js
+function renderProfile(name) {
+  const player = players.find((p) => p.name === name);
+  if (!player) return (location.hash = "#league");
+
+  // Reset dropdown to current season if undefined
+  const selectedSeason = window.selectedSeason || season;
+
+  // Available seasons where the player has matches
+  const availableSeasons = [
+  ...new Set(
+    seasonHistory
+      .flatMap((s) =>
+        (s.matches || [])
+          .filter((m) => m.winner === name || m.loser === name)
+          .map(() => s.season)
+      )
+  ),
+].sort((a, b) => b - a);
+
+  const h2h = calculateHeadToHead(name, selectedSeason);
+
+  // Matches only for this player
+  const matches = seasonHistory.flatMap((s) =>
+    (s.matches || [])
+      .filter((m) => m.winner === name || m.loser === name)
+      .map((m) => ({ ...m, season: s.season })),
+  );
+
+  const totalMatches = player.careerWins + player.careerLosses;
+  const winPct = totalMatches
+    ? ((player.careerWins / totalMatches) * 100).toFixed(1)
+    : "—";
+
+  app.innerHTML = `
+    <button onclick="location.hash='#league'; window.selectedSeason=undefined;">← Back</button>
+
+    <h1>${player.name}</h1>
+
+    <div class="profile-header">
+      <div class="profile-stats">
+        <p><strong>MMR:</strong> ${player.rating.toFixed(1)}</p>
+        <p><strong>Career:</strong> ${player.careerWins}-${player.careerLosses}</p>
+        <p><strong>Win %:</strong> ${winPct}%</p>
+      </div>
+
+      <div class="profile-chart">
+        <canvas id="eloChart"></canvas>
+      </div>
+    </div>
+
+    <div class="profile-section">
+      <h3>Head-to-Head</h3>
+
+      <select id="seasonSelect">
+        ${availableSeasons
+          .map(
+            (s) => `
+          <option value="${s}" ${selectedSeason === s ? "selected" : ""}>
+            Season ${s}
+          </option>
+        `,
+          )
+          .join("")}
+        <option value="career" ${selectedSeason === "career" ? "selected" : ""}>Career</option>
+      </select>
+
+      ${availableSeasons
+        .filter((s) => selectedSeason === "career" || s === selectedSeason)
+        .map((s) => {
+          const seasonH2H = calculateHeadToHead(
+            name,
+            selectedSeason === "career" ? s : selectedSeason,
+          );
+          return `
+            <div class="season-h2h">
+              <h4>Season ${s}</h4>
+              <table>
+                <tr>
+                  <th>Opponent</th>
+                  <th>Record</th>
+                  <th>Win %</th>
+                </tr>
+                ${
+                  seasonH2H
+                    .map((r) => {
+                      const total = r.wins + r.losses;
+                      const pct = total
+                        ? ((r.wins / total) * 100).toFixed(1)
+                        : "—";
+                      return `
+                    <tr>
+                      <td>${r.opponent}</td>
+                      <td>${r.wins}-${r.losses}</td>
+                      <td>${pct}%</td>
+                    </tr>
+                  `;
+                    })
+                    .join("") ||
+                  `
+                  <tr>
+                    <td colspan="3">No matches</td>
+                  </tr>
+                `
+                }
+              </table>
+            </div>
+          `;
+        })
+        .join("")}
+    </div>
+
+    <div class="profile-section">
+      <h3>Match History</h3>
+      <ul>
+        ${
+          matches
+            .filter(
+              (m) => selectedSeason === "career" || m.season === selectedSeason,
+            )
+            .map(
+              (m) => `
+            <li>
+              Season ${m.season}: 
+              ${m.winner === name ? "Won vs" : "Lost to"} 
+              ${m.winner === name ? m.loser : m.winner}
+            </li>
+          `,
+            )
+            .join("") || "<li>No matches</li>"
+        }
+      </ul>
+    </div>
+  `;
+
+  document.getElementById("seasonSelect").addEventListener("change", (e) => {
+    const value = e.target.value;
+    window.selectedSeason = value === "career" ? "career" : Number(value);
+    renderProfile(name);
+  });
+
+  renderEloChart(player);
+}
+```
+✅ Changes in v0.16.2
+
+Dropdown resets when leaving profile → always defaults to current season on next view.
+
+Match history bug fixed → only shows matches involving the selected player, optionally filtered by season.
+
+Layout and H2H sections remain consistent with previous version.
+
+Next logical step (v0.17) could be:
+
+MMR/ELO graph per season overlay
+
+Rival streaks / longest win/loss streaks
+
+Filter by opponent in H2H
 
 <!-- 
 FORMAT START
