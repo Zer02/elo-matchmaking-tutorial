@@ -9575,6 +9575,170 @@ v0.20 → Add SPIN matchmaking range preview
 
 You’re building something that already feels like a real ladder system.
 
+### v.0.17.2
+**v.0.17.1: fix 2 mistakes. the player input doesn't let me input properly, the cursor disappears after confirming a player. make it so the cursor stays so I can press Enter on many players back to back. and second, fix the dropdown on player profiles. it keeps showing career stats first instead of the current season. and make it so when leaving the current user's stats it resets to the current season when checking again**
+
+Perfect — these are clean UX fixes.
+
+We’re shipping:
+
+🎾 SPIN v0.17.2
+✅ Input cursor stays active after adding players
+✅ Default profile season = current season
+✅ Leaving profile resets to current season
+✅ No more “Career always selected first” bug
+
+Below is the only sections that changed.
+You can either replace the full file or patch these specific parts.
+
+✅ FIX 1 — Player Input Cursor (renderLeague)
+
+Replace your renderLeague() function with this version:
+
+function renderLeague() {
+  app.innerHTML = `
+    <h1>🎾 SPIN v0.17.2</h1>
+
+    <section>
+      <input id="playerInput" placeholder="Add player name" />
+      <button id="addPlayerBtn">Add Player</button>
+    </section>
+
+    <section>
+      <button onclick="simulateMatch()">Simulate Match</button>
+      <button onclick="nextSeason()">Next Season</button>
+      <div class="muted">Season ${season} · Persistent MMR</div>
+    </section>
+
+    <section>
+      <h2>Standings</h2>
+      <table>
+        <tr>
+          <th>Player</th>
+          <th>MMR</th>
+          <th>Season W-L</th>
+          <th>Career W-L</th>
+        </tr>
+        ${players
+          .sort((a, b) => b.rating - a.rating)
+          .map(
+            (p) => `
+          <tr>
+            <td><a href="#player/${encodeURIComponent(p.name)}">${p.name}</a></td>
+            <td>${p.rating.toFixed(1)}</td>
+            <td>${p.seasonWins}-${p.seasonLosses}</td>
+            <td>${p.careerWins}-${p.careerLosses}</td>
+          </tr>
+        `,
+          )
+          .join("")}
+      </table>
+    </section>
+  `;
+
+  const input = document.getElementById("playerInput");
+  const btn = document.getElementById("addPlayerBtn");
+
+  function submit() {
+    const value = input.value.trim();
+    if (!value) return;
+
+    addPlayer(value);
+    input.value = "";
+
+    render();
+
+    // Re-focus after re-render
+    setTimeout(() => {
+      const newInput = document.getElementById("playerInput");
+      newInput.focus();
+    }, 0);
+  }
+
+  input.focus();
+
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") submit();
+  });
+
+  btn.addEventListener("click", submit);
+}
+
+
+Now you can hammer Enter and add 10 players back-to-back.
+
+✅ FIX 2 — Dropdown Default Season + Reset Behavior
+Step 1: Reset season when leaving profile
+
+In renderProfile(), change your Back button to this:
+
+<button onclick="window.selectedSeason = undefined; location.hash='#league'">
+
+
+This clears selection properly.
+
+Step 2: Fix default selected season logic
+
+Replace this line inside renderProfile:
+
+const selectedSeason = window.selectedSeason || "career";
+
+
+WITH THIS:
+
+const selectedSeason =
+  window.selectedSeason !== undefined
+    ? window.selectedSeason
+    : season; // default to current season
+
+Step 3: Fix dropdown order
+
+Replace the <select> block with this:
+
+<select id="seasonSelect">
+  ${availableSeasons
+    .map(
+      (s) => `
+    <option value="${s}" ${selectedSeason === s ? "selected" : ""}>
+      Season ${s}
+    </option>
+  `,
+    )
+    .join("")}
+  <option value="career" ${selectedSeason === "career" ? "selected" : ""}>
+    Career
+  </option>
+</select>
+
+
+Now:
+
+Current season is selected by default
+
+Career is last
+
+Leaving profile resets to current season
+
+No more forced career view
+
+🎯 What v0.17.2 Now Feels Like
+
+Fast player creation (rapid testing mode)
+
+Proper seasonal UX
+
+Profile behavior feels natural
+
+Clean state reset between players
+
+If you want next:
+
+v0.18 → Highlight selected season line on chart
+v0.19 → Add Season Peak / Season Delta
+v0.20 → Add MMR confidence decay
+
+This system is becoming structurally sound now.
+
 <!-- 
 FORMAT START
 

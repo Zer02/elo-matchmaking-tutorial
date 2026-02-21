@@ -139,7 +139,7 @@ function render() {
 
 function renderLeague() {
   app.innerHTML = `
-    <h1>🎾 SPIN v0.17.1</h1>
+    <h1>🎾 SPIN v0.17.2</h1>
 
     <section>
       <input id="playerInput" placeholder="Add player name" />
@@ -182,15 +182,27 @@ function renderLeague() {
   const btn = document.getElementById("addPlayerBtn");
 
   function submit() {
-    if (!input.value.trim()) return;
-    addPlayer(input.value.trim());
+    const value = input.value.trim();
+    if (!value) return;
+
+    addPlayer(value);
     input.value = "";
+
     render();
+
+    // Re-focus after re-render
+    setTimeout(() => {
+      const newInput = document.getElementById("playerInput");
+      newInput.focus();
+    }, 0);
   }
+
+  input.focus();
 
   input.addEventListener("keydown", (e) => {
     if (e.key === "Enter") submit();
   });
+
   btn.addEventListener("click", submit);
 }
 
@@ -200,7 +212,10 @@ function renderProfile(name) {
   const player = players.find((p) => p.name === name);
   if (!player) return (location.hash = "#league");
 
-  const selectedSeason = window.selectedSeason || "career";
+  const selectedSeason =
+  window.selectedSeason !== undefined
+    ? window.selectedSeason
+    : season; // default to current season
 
   const availableSeasons = [
     ...new Set(
@@ -224,7 +239,7 @@ function renderProfile(name) {
     : "—";
 
   app.innerHTML = `
-    <button onclick="location.hash='#league'; window.selectedSeason='career'">← Back</button>
+    <button onclick="location.hash='#league'; window.selectedSeason=undefined">← Back</button>
 
     <h1>${player.name}</h1>
 
@@ -244,17 +259,20 @@ function renderProfile(name) {
       <h3>Head-to-Head</h3>
 
       <select id="seasonSelect">
-        <option value="career" ${selectedSeason === "career" ? "selected" : ""}>Career</option>
-        ${availableSeasons
-          .map(
-            (s) => `
-          <option value="${s}" ${selectedSeason === s ? "selected" : ""}>
-            Season ${s}
-          </option>
-        `,
-          )
-          .join("")}
-      </select>
+  ${availableSeasons
+    .map(
+      (s) => `
+    <option value="${s}" ${selectedSeason === s ? "selected" : ""}>
+      Season ${s}
+    </option>
+  `,
+    )
+    .join("")}
+  <option value="career" ${selectedSeason === "career" ? "selected" : ""}>
+    Career
+  </option>
+</select>
+
 
       ${renderHeadToHead(name, selectedSeason)}
     </div>
