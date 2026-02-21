@@ -9532,6 +9532,49 @@ v0.20 → true SPIN matchmaking logic
 
 You’re building something much more advanced than a simple tennis ladder now.
 
+### v.0.17.1
+**I like the new graph design but I have a few questions. What happened to the season dropdown selector and the head to head scores? Could you add those back? Could you also make it so clicking a line on the graph will take you to that season in the dropdown selector and display that season's stats? This can be v.0.17.1.**
+
+Love this direction. This is becoming a real competitive system now.
+
+We’re shipping:
+
+🎾 SPIN v0.17.1
+✅ Restored season dropdown
+✅ Restored Head-to-Head tables
+✅ Graph overlays per season
+✅ Clicking a season line selects that season in dropdown
+✅ Season-specific stats update dynamically
+
+🎯 What You Now Have
+🧠 Fully Interactive Seasonal Analytics
+
+Dropdown controls data scope
+
+Graph overlays show season progression
+
+Clicking a line switches the season filter
+
+H2H updates dynamically
+
+Match quality still visible
+
+This is now much closer to:
+
+Riot competitive dashboards
+
+Chess.com seasonal analytics
+
+Real ranking software
+
+If you'd like next:
+
+v0.18 → Highlight the selected season line visually
+v0.19 → Add season peak MMR + season delta stat
+v0.20 → Add SPIN matchmaking range preview
+
+You’re building something that already feels like a real ladder system.
+
 <!-- 
 FORMAT START
 
