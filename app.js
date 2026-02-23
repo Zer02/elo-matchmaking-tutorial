@@ -368,16 +368,24 @@ function renderHeadToHead(name, selectedSeason) {
 function renderEloChart(player, seasons, playerName) {
   const ctx = document.getElementById("eloChart").getContext("2d");
 
+  const selectedSeason =
+    window.selectedSeason !== undefined ? window.selectedSeason : season;
+
   const datasets = seasons.map((s) => {
-    const seasonData = player.eloHistory.filter(
-      (h) => h.season === s,
-    );
+    const seasonData = player.eloHistory.filter((h) => h.season === s);
+
+    const isSelected =
+      selectedSeason === "career" ? true : s === selectedSeason;
 
     return {
       label: `Season ${s}`,
       data: seasonData.map((h) => h.rating),
-      borderWidth: 2,
+      borderWidth: isSelected ? 4 : 1.5,
+      borderColor: isSelected ? "#60a5fa" : "rgba(96,165,250,0.3)",
       tension: 0.3,
+      pointRadius: isSelected ? 4 : 2,
+      pointBackgroundColor: isSelected ? "#60a5fa" : "rgba(96,165,250,0.3)",
+      order: isSelected ? 0 : 1, // bring selected to front
     };
   });
 
@@ -403,7 +411,9 @@ function renderEloChart(player, seasons, playerName) {
         window.selectedSeason = seasonNumber;
         renderProfile(playerName);
       },
-      scales: { y: { beginAtZero: false } },
+      scales: {
+        y: { beginAtZero: false },
+      },
     },
   });
 }

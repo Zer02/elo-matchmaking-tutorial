@@ -9739,6 +9739,134 @@ v0.20 → Add MMR confidence decay
 
 This system is becoming structurally sound now.
 
+### v.0.18
+**v.0.18 → Highlight selected season line on chart**
+
+Perfect. We’re shipping:
+
+🎾 SPIN v0.18
+✅ Highlight selected season line
+✅ Dim non-selected seasons
+✅ Chart auto-updates when dropdown changes
+✅ Clean visual competitive focus
+
+And from now on, every version will include a proper git commit message.
+
+🔧 What v0.18 Does
+
+When:
+
+You select a season in the dropdown
+
+OR click a season line on the graph
+
+That season’s line will:
+
+Have thicker stroke
+
+Full opacity
+
+Render on top
+
+All other seasons:
+
+Faded
+
+Thinner
+
+Visually secondary
+
+This makes seasonal analysis much clearer.
+
+✅ Replace Your renderEloChart Function With This
+```js
+function renderEloChart(player, seasons, playerName) {
+  const ctx = document.getElementById("eloChart").getContext("2d");
+
+  const selectedSeason =
+    window.selectedSeason !== undefined
+      ? window.selectedSeason
+      : season;
+
+  const datasets = seasons.map((s) => {
+    const seasonData = player.eloHistory.filter(
+      (h) => h.season === s,
+    );
+
+    const isSelected =
+      selectedSeason === "career"
+        ? true
+        : s === selectedSeason;
+
+    return {
+      label: `Season ${s}`,
+      data: seasonData.map((h) => h.rating),
+      borderWidth: isSelected ? 4 : 1.5,
+      borderColor: isSelected
+        ? "#60a5fa"
+        : "rgba(96,165,250,0.3)",
+      tension: 0.3,
+      pointRadius: isSelected ? 4 : 2,
+      pointBackgroundColor: isSelected
+        ? "#60a5fa"
+        : "rgba(96,165,250,0.3)",
+      order: isSelected ? 0 : 1, // bring selected to front
+    };
+  });
+
+  new Chart(ctx, {
+    type: "line",
+    data: {
+      labels: player.eloHistory.map((_, i) => `Match ${i}`),
+      datasets,
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: true },
+      },
+      onClick: (evt, elements, chart) => {
+        if (!elements.length) return;
+
+        const datasetIndex = elements[0].datasetIndex;
+        const label = chart.data.datasets[datasetIndex].label;
+        const seasonNumber = Number(label.split(" ")[1]);
+
+        window.selectedSeason = seasonNumber;
+        renderProfile(playerName);
+      },
+      scales: {
+        y: { beginAtZero: false },
+      },
+    },
+  });
+}
+```
+
+🎯 Behavior Summary
+Dropdown → Highlights season line
+Clicking season line → Updates dropdown + stats
+Career → All lines highlighted equally
+
+It now feels like a real competitive analytics dashboard.
+
+📝 Git Commit Message
+feat(v0.18): highlight selected season line in MMR chart
+
+- Increase stroke width and opacity for selected season
+- Dim non-selected season overlays
+- Bring selected dataset to front
+- Sync chart highlighting with dropdown and click events
+
+If you'd like next:
+
+v0.19 → Add season peak MMR + season delta stat block
+v0.20 → Add performance streak detection
+v0.21 → Add rating confidence (Glicko-lite foundation)
+
+Your ladder system is getting sharp now.
+
 <!-- 
 FORMAT START
 
