@@ -9867,6 +9867,124 @@ v0.21 → Add rating confidence (Glicko-lite foundation)
 
 Your ladder system is getting sharp now.
 
+### v.0.18.1
+**I like the line update changes, but can you add back the colors for the line graph like they were before? This will be v.0.18.1**
+
+Love it — we keep the competitive highlighting and restore the per-season colors.
+
+🎾 SPIN v0.18.1
+✅ Restore unique season colors
+✅ Keep highlight/dim behavior
+✅ Selected season still thicker + on top
+🔧 Replace renderEloChart With This (v0.18.1)
+
+This version:
+
+Uses distinct colors per season
+
+Fades non-selected seasons
+
+Keeps selected season bold + top layer
+
+Career view = all seasons full strength
+
+```js
+function renderEloChart(player, seasons, playerName) {
+  const ctx = document.getElementById("eloChart").getContext("2d");
+
+  if (window.eloChartInstance) {
+    window.eloChartInstance.destroy();
+  }
+
+  const selectedSeason =
+    window.selectedSeason !== undefined
+      ? window.selectedSeason
+      : season;
+
+  // Color palette (extend if needed)
+  const palette = [
+    "#60a5fa", // blue
+    "#f97316", // orange
+    "#22c55e", // green
+    "#e11d48", // red
+    "#a855f7", // purple
+    "#14b8a6", // teal
+  ];
+
+  const datasets = seasons.map((s, index) => {
+    const seasonData = player.eloHistory.filter(
+      (h) => h.season === s
+    );
+
+    const baseColor = palette[index % palette.length];
+
+    const isSelected =
+      selectedSeason === "career"
+        ? true
+        : s === selectedSeason;
+
+    return {
+      label: `Season ${s}`,
+      data: seasonData.map((h) => h.rating),
+      borderWidth: isSelected ? 4 : 1.5,
+      borderColor: isSelected
+        ? baseColor
+        : baseColor + "55", // faded hex opacity
+      backgroundColor: baseColor,
+      tension: 0.3,
+      pointRadius: isSelected ? 4 : 2,
+      pointBackgroundColor: isSelected
+        ? baseColor
+        : baseColor + "55",
+      order: isSelected ? 0 : 1,
+    };
+  });
+
+  window.eloChartInstance = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels: player.eloHistory.map((_, i) => `Match ${i + 1}`),
+      datasets,
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: true },
+      },
+      onClick: (evt, elements, chart) => {
+        if (!elements.length) return;
+
+        const datasetIndex = elements[0].datasetIndex;
+        const label = chart.data.datasets[datasetIndex].label;
+        const seasonNumber = Number(label.split(" ")[1]);
+
+        window.selectedSeason = seasonNumber;
+        renderProfile(playerName);
+      },
+      scales: {
+        y: { beginAtZero: false },
+      },
+    },
+  });
+}
+```
+🎯 Result
+
+Season 1 = Blue
+
+Season 2 = Orange
+
+Season 3 = Green
+
+etc.
+
+Selected season: bold + vivid
+
+Others: same color but softened
+
+Much cleaner visually.
+
 <!-- 
 FORMAT START
 
