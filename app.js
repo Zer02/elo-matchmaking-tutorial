@@ -139,7 +139,7 @@ function render() {
 
 function renderLeague() {
   app.innerHTML = `
-    <h1>🎾 SPIN v0.17.2</h1>
+    <h1>🎾 SPIN v.0.19</h1>
 
     <section>
       <input id="playerInput" placeholder="Add player name" />
@@ -373,38 +373,62 @@ function renderEloChart(player, seasons, playerName) {
   }
 
   const selectedSeason =
-    window.selectedSeason !== undefined ? window.selectedSeason : season;
+    window.selectedSeason !== undefined
+      ? window.selectedSeason
+      : season;
 
-  // Color palette (extend if needed)
   const palette = [
-    "#60a5fa", // blue
-    "#f97316", // orange
-    "#22c55e", // green
-    "#e11d48", // red
-    "#a855f7", // purple
-    "#14b8a6", // teal
+    "#60a5fa",
+    "#f97316",
+    "#22c55e",
+    "#e11d48",
+    "#a855f7",
+    "#14b8a6",
   ];
 
   const datasets = seasons.map((s, index) => {
-    const seasonData = player.eloHistory.filter((h) => h.season === s);
+    const seasonData = player.eloHistory.filter(
+      (h) => h.season === s
+    );
+
+    const ratings = seasonData.map((h) => h.rating);
+
+    if (!ratings.length) return null;
+
+    const peakValue = Math.max(...ratings);
+    const peakIndex = ratings.indexOf(peakValue);
 
     const baseColor = palette[index % palette.length];
 
     const isSelected =
-      selectedSeason === "career" ? true : s === selectedSeason;
+      selectedSeason === "career"
+        ? true
+        : s === selectedSeason;
 
     return {
       label: `Season ${s}`,
-      data: seasonData.map((h) => h.rating),
+      data: ratings,
       borderWidth: isSelected ? 4 : 1.5,
-      borderColor: isSelected ? baseColor : baseColor + "55", // faded hex opacity
-      backgroundColor: baseColor,
+      borderColor: isSelected
+        ? baseColor
+        : baseColor + "55",
       tension: 0.3,
-      pointRadius: isSelected ? 4 : 2,
-      pointBackgroundColor: isSelected ? baseColor : baseColor + "55",
+      pointRadius: (ctx) =>
+        ctx.dataIndex === peakIndex
+          ? (isSelected ? 7 : 5)
+          : (isSelected ? 3 : 2),
+      pointBackgroundColor: (ctx) =>
+        ctx.dataIndex === peakIndex
+          ? baseColor
+          : isSelected
+            ? baseColor
+            : baseColor + "55",
+      pointBorderWidth: (ctx) =>
+        ctx.dataIndex === peakIndex ? 2 : 0,
+      pointBorderColor: "#ffffff",
       order: isSelected ? 0 : 1,
     };
-  });
+  }).filter(Boolean);
 
   window.eloChartInstance = new Chart(ctx, {
     type: "line",
@@ -417,6 +441,22 @@ function renderEloChart(player, seasons, playerName) {
       maintainAspectRatio: false,
       plugins: {
         legend: { display: true },
+        tooltip: {
+          callbacks: {
+            afterLabel: function (context) {
+              const dataset = context.dataset;
+              const seasonNumber = dataset.label.split(" ")[1];
+              const currentValue = context.parsed.y;
+
+              const seasonRatings = dataset.data;
+              const peak = Math.max(...seasonRatings);
+
+              if (currentValue === peak) {
+                return "🔥 Season Peak";
+              }
+            },
+          },
+        },
       },
       onClick: (evt, elements, chart) => {
         if (!elements.length) return;

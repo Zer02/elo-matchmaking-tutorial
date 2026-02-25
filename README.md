@@ -9985,6 +9985,157 @@ Others: same color but softened
 
 Much cleaner visually.
 
+### v.0.19
+**v0.19 → Season peak marker dots v0.20 → Animated season transitions v0.21 → Confidence interval bands Let's do this. Start with v.0.19. And from now on keep the exact format for git messages simple one liners like this: v.0.18.1 - restore unique season colors in MMR chart**
+
+Perfect. We’ll build:
+
+🎾 SPIN v0.19
+✅ Season Peak Marker Dots
+
+Each season now shows a clearly visible marker at its highest MMR point.
+
+Selected season → large solid peak dot
+
+Non-selected seasons → smaller faded peak dot
+
+Career view → all peaks equally visible
+
+This makes seasonal performance spikes immediately obvious.
+
+🔧 Replace renderEloChart With This (v0.19)
+```js
+function renderEloChart(player, seasons, playerName) {
+  const ctx = document.getElementById("eloChart").getContext("2d");
+
+  if (window.eloChartInstance) {
+    window.eloChartInstance.destroy();
+  }
+
+  const selectedSeason =
+    window.selectedSeason !== undefined
+      ? window.selectedSeason
+      : season;
+
+  const palette = [
+    "#60a5fa",
+    "#f97316",
+    "#22c55e",
+    "#e11d48",
+    "#a855f7",
+    "#14b8a6",
+  ];
+
+  const datasets = seasons.map((s, index) => {
+    const seasonData = player.eloHistory.filter(
+      (h) => h.season === s
+    );
+
+    const ratings = seasonData.map((h) => h.rating);
+
+    if (!ratings.length) return null;
+
+    const peakValue = Math.max(...ratings);
+    const peakIndex = ratings.indexOf(peakValue);
+
+    const baseColor = palette[index % palette.length];
+
+    const isSelected =
+      selectedSeason === "career"
+        ? true
+        : s === selectedSeason;
+
+    return {
+      label: `Season ${s}`,
+      data: ratings,
+      borderWidth: isSelected ? 4 : 1.5,
+      borderColor: isSelected
+        ? baseColor
+        : baseColor + "55",
+      tension: 0.3,
+      pointRadius: (ctx) =>
+        ctx.dataIndex === peakIndex
+          ? (isSelected ? 7 : 5)
+          : (isSelected ? 3 : 2),
+      pointBackgroundColor: (ctx) =>
+        ctx.dataIndex === peakIndex
+          ? baseColor
+          : isSelected
+            ? baseColor
+            : baseColor + "55",
+      pointBorderWidth: (ctx) =>
+        ctx.dataIndex === peakIndex ? 2 : 0,
+      pointBorderColor: "#ffffff",
+      order: isSelected ? 0 : 1,
+    };
+  }).filter(Boolean);
+
+  window.eloChartInstance = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels: player.eloHistory.map((_, i) => `Match ${i + 1}`),
+      datasets,
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: true },
+        tooltip: {
+          callbacks: {
+            afterLabel: function (context) {
+              const dataset = context.dataset;
+              const seasonNumber = dataset.label.split(" ")[1];
+              const currentValue = context.parsed.y;
+
+              const seasonRatings = dataset.data;
+              const peak = Math.max(...seasonRatings);
+
+              if (currentValue === peak) {
+                return "🔥 Season Peak";
+              }
+            },
+          },
+        },
+      },
+      onClick: (evt, elements, chart) => {
+        if (!elements.length) return;
+
+        const datasetIndex = elements[0].datasetIndex;
+        const label = chart.data.datasets[datasetIndex].label;
+        const seasonNumber = Number(label.split(" ")[1]);
+
+        window.selectedSeason = seasonNumber;
+        renderProfile(playerName);
+      },
+      scales: {
+        y: { beginAtZero: false },
+      },
+    },
+  });
+}
+```
+🎯 What This Adds
+
+Instant visual identification of best seasonal performance
+
+Competitive feel (peak hunting behavior)
+
+Tooltip shows: 🔥 Season Peak
+
+Works with your existing highlight system
+
+📝 Git Message (exact format as requested)
+
+v.0.19 - add season peak marker dots to MMR chart
+
+Next:
+
+v0.20 → Smooth animated season transitions
+v0.21 → Confidence interval bands (Glicko-lite visual layer)
+
+Your ladder UI is starting to look seriously polished now.
+
 <!-- 
 FORMAT START
 
