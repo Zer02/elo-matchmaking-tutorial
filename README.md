@@ -10136,6 +10136,196 @@ v0.21 → Confidence interval bands (Glicko-lite visual layer)
 
 Your ladder UI is starting to look seriously polished now.
 
+### v.0.19.1
+**I'm at v.0.19. What should I focus on moving forward before adding in supabase for actual players instead of simulated players?**
+
+Good question. This is the right time to think structurally.
+
+You’re at v0.19 with:
+
+✅ Seasonal overlays
+
+✅ Peak markers
+
+✅ Season filtering
+
+✅ Stable chart rendering
+
+✅ Simulated players
+
+Before adding Supabase, you want to harden the system design, not add more UI sugar.
+
+Here’s what actually matters next:
+
+🧠 Phase 1 — Lock the Rating System
+
+Before real users exist, your rating engine must be final (or very close).
+
+1️⃣ Rating Logic Stability (HIGH PRIORITY)
+
+Ask yourself:
+
+Is K-factor static or dynamic?
+
+Does new player volatility decay?
+
+Is there rating floor protection?
+
+How are placement matches handled?
+
+Do seasons soft-reset or fully reset?
+
+If you change rating math after real players exist, you create credibility problems.
+
+👉 Recommendation:
+Finalize:
+
+K-factor rules
+
+Season reset behavior
+
+Match result structure
+
+Rating update formula
+
+This is more important than UI.
+
+2️⃣ Match Data Structure
+
+Before database integration, define your match schema clearly.
+
+Each match should already have:
+
+{
+  id,
+  season,
+  timestamp,
+  playerA,
+  playerB,
+  ratingBeforeA,
+  ratingBeforeB,
+  ratingAfterA,
+  ratingAfterB,
+  ratingChangeA,
+  ratingChangeB,
+  result
+}
+
+Even in simulation.
+
+If this isn’t clean yet, fix it now.
+
+Supabase should just store this — not reinterpret it.
+
+🏗 Phase 2 — System Integrity
+3️⃣ Edge Case Handling (Very Important)
+
+Test:
+
+What happens if a player has 0 matches?
+
+What happens if a player changes name?
+
+What if two players have same name?
+
+What if season changes mid-view?
+
+What if a player only played 1 match?
+
+Simulated systems hide these flaws.
+
+Real users expose them immediately.
+
+4️⃣ Identity System Planning
+
+Before Supabase, decide:
+
+Will players be:
+
+Username-only?
+
+Email authenticated?
+
+Invite-based?
+
+Admin-created?
+
+You don’t need to implement auth yet — just define how identity works.
+
+Because:
+Rating system ≠ User system.
+
+📊 Phase 3 — Competitive Features (Optional but Valuable)
+
+These are stronger than more styling:
+
+A. Match Quality / Fairness Indicator
+
+Helps prevent matchmaking complaints.
+
+B. Season Reset Strategy
+
+Soft reset? % compression? Placement recalibration?
+
+C. Rating Volatility (Glicko-lite)
+
+Even without full Glicko, you can track confidence:
+
+High uncertainty for new players
+
+Shrinks over time
+
+This becomes powerful when real players join.
+
+🚦 What NOT to Focus On Yet
+
+❌ More UI polish
+❌ More animations
+❌ More chart effects
+❌ Micro styling
+
+Those matter after Supabase.
+
+Right now:
+System > visuals.
+
+🎯 My Recommended Roadmap
+v0.20 → Lock rating formula + K-factor rules
+v0.21 → Add match quality calculation
+v0.22 → Add basic volatility/confidence score
+v0.23 → Clean match object structure
+v0.24 → Season reset logic solidified
+v0.25 → THEN integrate Supabase
+
+Once that’s done:
+You won’t need to rewrite your database schema later.
+
+⚠️ The Big Mistake People Make
+
+They add a backend too early.
+
+Then they:
+
+Change rating math
+
+Change season logic
+
+Change match structure
+
+And suddenly they need migrations, data resets, or worse — credibility repair.
+
+You’re actually at the perfect checkpoint.
+
+If you want, I can:
+
+Audit your rating formula next
+
+Help you design your match object schema
+
+Or design a clean Supabase table layout in advance
+
+What direction do you want to harden first: rating math or data structure?
+
 <!-- 
 FORMAT START
 
