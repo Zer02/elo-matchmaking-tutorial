@@ -10326,6 +10326,244 @@ Or design a clean Supabase table layout in advance
 
 What direction do you want to harden first: rating math or data structure?
 
+### v.0.19.2
+**For v.0.19.2, explain how you're planning on doing this for v.0.20: Lock rating formula + K-factor rules**
+
+Perfect. For v0.19.2, we’re not adding UI.
+
+We’re locking the rating engine contract.
+
+Here’s exactly how I’d approach:
+
+v0.19.2 → Lock rating formula + K-factor rules
+
+🎯 Goal of v0.19.2
+
+Make the rating system:
+
+Deterministic
+
+Predictable
+
+Versioned
+
+Season-aware
+
+Safe for real players
+
+No backend yet. Just structural discipline.
+
+🧠 Step 1 — Freeze the Core Rating Formula
+
+You are likely using standard Elo:
+
+𝑅
+′
+=
+𝑅
++
+𝐾
+(
+𝑆
+−
+𝐸
+)
+R
+′
+=R+K(S−E)
+
+Where:
+
+R = current rating
+
+S = actual score (1 or 0)
+
+E = expected score
+
+K = volatility factor
+
+For v0.19.2 we:
+
+✅ Extract rating logic into ONE isolated function
+
+Instead of spreading math inline, create:
+
+function calculateElo({
+  ratingA,
+  ratingB,
+  scoreA,
+  kFactor
+}) {
+  const expectedA =
+    1 / (1 + Math.pow(10, (ratingB - ratingA) / 400));
+
+  const changeA = Math.round(
+    kFactor * (scoreA - expectedA)
+  );
+
+  return {
+    newRatingA: ratingA + changeA,
+    changeA
+  };
+}
+
+This becomes the single source of truth.
+
+No UI touches this.
+
+🧱 Step 2 — Define K-Factor Rules (Critical)
+
+Right now you probably use:
+
+const K = 32;
+
+That’s not future-proof.
+
+We need structured volatility rules.
+
+Option A (Safe & Clean for MVP)
+Tiered K-Factor:
+function getKFactor(player) {
+  if (player.gamesPlayed < 20) return 40;   // Placement phase
+  if (player.rating > 2000) return 16;      // High skill stabilization
+  return 24;                                // Standard
+}
+
+Why this works:
+
+New players move faster
+
+High-rated players stabilize
+
+Mid-tier stays balanced
+
+Option B (More Competitive Feel)
+
+Decay volatility over time:
+
+function getKFactor(player) {
+  const base = 40;
+  const decay = Math.max(16, base - player.gamesPlayed);
+  return decay;
+}
+
+This simulates a soft Glicko-lite system.
+
+🧾 Step 3 — Version the Rating System
+
+Add this globally:
+
+const RATING_VERSION = "1.0";
+
+Then every match object stores:
+
+ratingVersion: RATING_VERSION
+
+Why?
+
+If in v0.25 you change math, you:
+
+Don’t corrupt historical integrity
+
+Can migrate seasons cleanly
+
+Can justify rating resets
+
+This is extremely important before real players.
+
+🔄 Step 4 — Lock Season Reset Behavior
+
+Decide NOW:
+
+When a new season starts:
+
+Option A — Hard Reset
+
+All players → 1500
+
+Option B — Soft Compression (recommended)
+function seasonReset(rating) {
+  return Math.round(1500 + (rating - 1500) * 0.5);
+}
+
+This:
+
+Rewards good players
+
+Keeps ladder competitive
+
+Prevents inflation
+
+If you don’t decide this before Supabase, you’ll regret it.
+
+🛡 Step 5 — Add Rating Floor Protection
+
+Prevent rating from dropping below a minimum:
+
+function applyRatingFloor(rating) {
+  return Math.max(1000, rating);
+}
+
+This:
+
+Protects casual players
+
+Prevents morale collapse
+
+Makes system more humane
+
+Optional — but recommended before going live.
+
+📦 Step 6 — Standardize the Match Object
+
+Every match should return:
+
+{
+  season,
+  ratingVersion,
+  ratingBefore,
+  ratingAfter,
+  ratingChange,
+  kFactorUsed,
+  expectedScore,
+  actualScore
+}
+
+Now your rating engine is transparent.
+
+🧠 Why This Must Happen Before Supabase
+
+Once real players exist:
+
+You can’t casually tweak K-factor.
+
+You can’t change reset logic easily.
+
+You can’t adjust volatility without backlash.
+
+v0.19.2 is about making your system defensible.
+
+🧭 What v0.19.2 Is NOT
+
+❌ No UI changes
+❌ No new visuals
+❌ No database
+❌ No features
+
+It’s internal architecture hardening.
+
+📝 Git Message (when implemented)
+
+v0.19.2 - lock rating formula and k factor rules
+
+If you want, next I can:
+
+Recommend the exact K-factor model I think fits your ladder size
+
+Or help you simulate 1000 matches to test rating stability
+
+This is the point where your project shifts from “cool demo” to “real system.”
+
 <!-- 
 FORMAT START
 
