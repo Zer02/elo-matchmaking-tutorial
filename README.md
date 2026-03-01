@@ -10743,6 +10743,192 @@ v0.20 → add match quality / fairness indicator
 
 This is the part where your ladder becomes real.
 
+### v0.19.4
+****
+
+Perfect.
+We’re doing this properly.
+
+🎾 SPIN v0.19.4
+Simulate 1000 Match Stress Test to Validate Rating Stability
+
+This version does not change gameplay.
+
+It validates:
+
+Inflation behavior
+
+Rating spread
+
+Top-tier stability
+
+New player calibration speed
+
+K-factor balance
+
+🧠 What We’re Testing
+
+We simulate:
+
+50 players
+
+All start at 1500
+
+Random matchmaking
+
+1000 total matches
+
+True hidden skill assigned internally
+
+Elo system tries to discover it
+
+Then we measure:
+
+Rating distribution
+
+Average rating (should stay ~1500)
+
+Standard deviation
+
+Top rating
+
+Bottom rating
+
+If average drifts significantly → inflation problem.
+If spread is extreme → volatility problem.
+If convergence is slow → K too low.
+
+🔧 Add This Simulation Function
+
+You can run this in console or dev mode.
+```js
+function runStressTest() {
+  const PLAYER_COUNT = 50;
+  const MATCH_COUNT = 1000;
+
+  const players = [];
+
+  // Create players with hidden true skill
+  for (let i = 0; i < PLAYER_COUNT; i++) {
+    players.push({
+      id: i,
+      rating: 1500,
+      gamesPlayed: 0,
+      trueSkill: 1300 + Math.random() * 400
+    });
+  }
+
+  function expected(a, b) {
+    return 1 / (1 + Math.pow(10, (b - a) / 400));
+  }
+
+  function getKFactor(player) {
+    if (player.gamesPlayed < 15) return 40;
+    if (player.rating >= 2000) return 16;
+    if (player.rating >= 1700) return 20;
+    return 24;
+  }
+
+  for (let m = 0; m < MATCH_COUNT; m++) {
+    const a = players[Math.floor(Math.random() * PLAYER_COUNT)];
+    let b;
+    do {
+      b = players[Math.floor(Math.random() * PLAYER_COUNT)];
+    } while (a.id === b.id);
+
+    const expectedA = expected(a.rating, b.rating);
+
+    // Outcome based on hidden true skill
+    const winProbA = expected(a.trueSkill, b.trueSkill);
+    const scoreA = Math.random() < winProbA ? 1 : 0;
+
+    const kA = getKFactor(a);
+    const kB = getKFactor(b);
+
+    const changeA = Math.round(kA * (scoreA - expectedA));
+    const changeB = -changeA;
+
+    a.rating += changeA;
+    b.rating += changeB;
+
+    a.gamesPlayed++;
+    b.gamesPlayed++;
+  }
+
+  const ratings = players.map(p => p.rating);
+
+  const avg =
+    ratings.reduce((a, b) => a + b, 0) / ratings.length;
+
+  const max = Math.max(...ratings);
+  const min = Math.min(...ratings);
+
+  const variance =
+    ratings.reduce((a, r) => a + Math.pow(r - avg, 2), 0) /
+    ratings.length;
+
+  const stdDev = Math.sqrt(variance);
+
+  console.log("Average Rating:", avg.toFixed(2));
+  console.log("Highest Rating:", max);
+  console.log("Lowest Rating:", min);
+  console.log("Std Deviation:", stdDev.toFixed(2));
+}
+
+Run:
+
+runStressTest();
+```
+📊 What “Healthy” Looks Like
+
+After 1000 matches:
+
+Average Rating → ~1500 (±10 is fine)
+Highest Rating → ~1900–2100
+Lowest Rating → ~900–1100
+Std Dev → ~200–300
+
+If:
+
+Average drifts upward → inflation issue
+Std Dev > 400 → too volatile
+Top > 2300 → runaway instability
+Bottom < 700 → too punishing
+
+🧠 Why This Matters Before Supabase
+
+Once real players exist:
+
+You cannot easily:
+
+Change K-factor
+
+Fix inflation
+
+Reset ratings
+
+Redefine volatility
+
+Testing in simulation lets you tune safely.
+
+🚀 Optional Upgrade (Next Version)
+
+v0.19.5 → Add season soft reset compression simulation
+v0.19.6 → Add rating floor enforcement
+v0.20 → Add match quality indicator
+
+📝 Git Message
+
+v0.19.4 - add 1000 match stress test simulation for rating stability validation
+
+Run it a few times and tell me:
+
+What average are you getting?
+
+What’s the highest rating you see?
+
+That will tell us if your ladder math is truly stable.
+
 <!-- 
 FORMAT START
 
