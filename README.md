@@ -10744,7 +10744,7 @@ v0.20 → add match quality / fairness indicator
 This is the part where your ladder becomes real.
 
 ### v0.19.4
-****
+**v0.19.4 → simulate 1000 match stress test to validate stability**
 
 Perfect.
 We’re doing this properly.
