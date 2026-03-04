@@ -11200,6 +11200,187 @@ v0.20 → Design Supabase schema cleanly
 
 Your ladder is structurally sound now.
 
+### v0.19.7 
+**v0.19.7 → Add match quality / fairness indicator**
+
+Perfect. This is a smart next step.
+
+🎾 SPIN v0.19.7
+Add Match Quality / Fairness Indicator
+
+This does not change rating math.
+
+It gives players transparency about how fair a match was before or after it’s played.
+
+🧠 What “Match Quality” Means
+
+We already calculate expected score:
+
+𝐸
+𝐴
+=
+1
+1
++
+10
+(
+𝑅
+𝐵
+−
+𝑅
+𝐴
+)
+/
+400
+E
+A
+	​
+
+=
+1+10
+(R
+B
+	​
+
+−R
+A
+	​
+
+)/400
+1
+	​
+
+
+If:
+
+Expected ≈ 0.50 → very fair match
+
+Expected ≈ 0.90 → extremely one-sided
+
+We turn that into a quality score (0–100%).
+
+📐 The Formula
+
+We measure how close expected win probability is to 50%.
+
+function calculateMatchQuality(ratingA, ratingB) {
+  const expectedA =
+    1 / (1 + Math.pow(10, (ratingB - ratingA) / 400));
+
+  const quality =
+    1 - Math.abs(expectedA - 0.5) * 2;
+
+  return Math.round(quality * 100);
+}
+🔎 Why This Works
+
+If expectedA = 0.5
+→ quality = 100% (perfectly fair)
+
+If expectedA = 0.75
+→ quality = 50%
+
+If expectedA = 0.90
+→ quality = 20%
+
+If expectedA = 0.99
+→ quality ≈ 2%
+
+It scales cleanly and symmetrically.
+
+🎨 Step 2 — Add Quality Tier Label
+function getQualityLabel(quality) {
+  if (quality >= 80) return "Elite Match";
+  if (quality >= 60) return "Competitive";
+  if (quality >= 40) return "Playable";
+  return "Mismatch";
+}
+🎨 Step 3 — Add Color Indicator
+function getQualityColor(quality) {
+  if (quality >= 80) return "#22c55e"; // green
+  if (quality >= 60) return "#eab308"; // yellow
+  if (quality >= 40) return "#f97316"; // orange
+  return "#ef4444"; // red
+}
+🧱 Step 4 — Use It During Match Creation
+
+When pairing players:
+
+const quality = calculateMatchQuality(
+  playerA.rating,
+  playerB.rating
+);
+
+const qualityLabel = getQualityLabel(quality);
+const qualityColor = getQualityColor(quality);
+
+Render it like:
+
+qualityElement.innerHTML = `
+  <span style="color:${qualityColor}; font-weight:600;">
+    ${quality}% – ${qualityLabel}
+  </span>
+`;
+📦 Step 5 — Store It in Match Object
+
+Important for backend readiness.
+
+{
+  ...
+  matchQuality: quality
+}
+
+Now match transparency is permanent.
+
+🧠 Why This Is Important Before Supabase
+
+Once real players exist:
+
+They will complain about unfair matches.
+
+You need objective evidence.
+
+This makes matchmaking measurable.
+
+It allows future auto-matching improvements.
+
+This is competitive credibility.
+
+📊 What You Should See
+
+Balanced match (1500 vs 1520)
+→ 94–98% Elite
+
+Mid gap (1500 vs 1650)
+→ ~60% Competitive
+
+Large gap (1500 vs 1850)
+→ ~30% Mismatch
+
+📝 Git Message
+
+v0.19.7 - add match quality fairness indicator based on rating difference
+
+You now have:
+
+Stable rating system
+
+Stress-tested volatility
+
+Season compression
+
+Match fairness transparency
+
+You’re officially approaching backend integration territory.
+
+Next:
+
+v0.19.8 → Add rating confidence (volatility tracking)
+OR
+v0.20 → Design Supabase table schema
+
+What direction do you want to harden next?
+
 <!-- 
 FORMAT START
 
