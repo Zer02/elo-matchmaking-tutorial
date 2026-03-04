@@ -11039,6 +11039,167 @@ You’ve officially passed the “is this ladder broken?” test.
 
 Want to run a 5000 match simulation next to stress it harder?
 
+### v0.19.6
+**v0.19.6 → Add season soft reset compression**
+
+Perfect. This is the last structural piece before backend work.
+
+🎾 SPIN v0.19.6
+Add Season Soft Reset Compression
+
+We are NOT hard resetting everyone to 1500.
+
+We are compressing ratings toward 1500 at season rollover.
+
+This preserves:
+
+Skill hierarchy
+
+Competitive integrity
+
+Motivation for high players
+
+Hope for mid-tier players
+
+🧠 The Philosophy
+
+Hard reset:
+
+Destroys earned rank
+
+Feels pointless
+
+Creates chaos
+
+Soft compression:
+
+Pulls everyone toward center
+
+Reduces inflation
+
+Keeps ladder competitive
+
+Preserves skill ordering
+
+📐 The Formula
+
+We use 50% compression toward 1500.
+
+function seasonReset(rating) {
+  return Math.round(
+    1500 + (rating - 1500) * 0.5
+  );
+}
+🔎 What This Does
+
+If rating = 2000
+→ 1500 + (500 × 0.5) = 1750
+
+If rating = 1800
+→ 1650
+
+If rating = 1300
+→ 1400
+
+If rating = 1000
+→ 1250
+
+Everyone moves closer to center.
+No one is erased.
+
+🛡 Add Rating Floor Protection
+
+Combine with floor logic:
+
+function applyRatingFloor(rating) {
+  return Math.max(1000, rating);
+}
+
+Then final reset:
+
+function seasonReset(rating) {
+  const compressed =
+    1500 + (rating - 1500) * 0.5;
+
+  return applyRatingFloor(
+    Math.round(compressed)
+  );
+}
+🧱 How To Apply It
+
+At season rollover:
+
+players.forEach(player => {
+  player.rating = seasonReset(player.rating);
+  player.gamesPlayed = 0;
+});
+
+Important:
+Do NOT wipe match history.
+Just increment season number.
+
+📊 Why 50% Compression?
+
+50% is balanced because:
+
+25% → too weak, ladder barely changes
+
+75% → too aggressive, feels like soft wipe
+
+50% → competitive refresh without chaos
+
+It also naturally fights long-term inflation.
+
+🧠 Optional (Advanced Later)
+
+You can make compression dynamic:
+
+const COMPRESSION = 0.5;
+
+And tune season by season.
+
+But for now:
+Lock 0.5.
+
+🧪 Optional: Test It
+
+Add to your stress test:
+
+players.forEach(p => {
+  p.rating = seasonReset(p.rating);
+});
+
+Then log new distribution.
+
+You should see:
+
+Spread shrink
+
+Average stay near 1500
+
+Order preserved
+
+📝 Git Message
+
+v0.19.6 - implement season soft reset compression toward 1500
+
+You now have:
+
+✅ Dynamic K-factor
+✅ Stress-tested stability
+✅ Season compression logic
+✅ Versioned rating system
+
+You are almost backend-ready.
+
+Next logical move:
+
+v0.19.7 → Add match quality / fairness indicator
+OR
+v0.20 → Design Supabase schema cleanly
+
+Your ladder is structurally sound now.
+
 <!-- 
 FORMAT START
 
