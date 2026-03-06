@@ -11563,6 +11563,147 @@ Which direction do you want to push SPIN next?
 2️⃣ Prepare real player database (Supabase)
 3️⃣ Add UI improvements for league realism
 
+### v.0.19.9
+**v0.19.9 - Add matchmaking fairness filter (avoid extreme rating gaps)**
+
+Good choice. This is one of the most important realism upgrades for SPIN before moving to real players.
+
+Right now simulateMatch() picks two random players, which creates unrealistic pairings like:
+
+1900 vs 1400
+
+Real matchmaking systems avoid this.
+
+For v0.19.9 we add a rating gap filter so SPIN prefers fair matches.
+
+🎾 SPIN v0.19.9
+
+Add Matchmaking Fairness Filter (Rating Gap Protection)
+
+Goal
+
+Prevent matches where ratings are too far apart.
+
+Example rule:
+
+Max rating difference = 150
+
+So these are allowed:
+
+1600 vs 1700
+1650 vs 1750
+
+But not:
+
+1600 vs 1850
+1️⃣ Add Matchmaking Constant
+
+At the top of app.js near K.
+
+const MAX_RATING_GAP = 150;
+2️⃣ Create Matchmaking Function
+
+Add this function above simulateMatch().
+
+function findFairMatch() {
+  const shuffled = shuffle([...players]);
+
+  for (let i = 0; i < shuffled.length; i++) {
+    for (let j = i + 1; j < shuffled.length; j++) {
+      const p1 = shuffled[i];
+      const p2 = shuffled[j];
+
+      const gap = Math.abs(p1.rating - p2.rating);
+
+      if (gap <= MAX_RATING_GAP) {
+        return [p1, p2];
+      }
+    }
+  }
+
+  return null;
+}
+
+This:
+
+Randomizes players
+
+Searches for the first fair pairing
+
+Returns null if none exist
+
+3️⃣ Update simulateMatch()
+
+Replace the top of the function.
+
+Old code:
+
+const [p1, p2] = shuffle([...players]).slice(0, 2);
+
+Replace with:
+
+const match = findFairMatch();
+
+if (!match) {
+  alert("No fair match available. League ratings may be too spread out.");
+  return;
+}
+
+const [p1, p2] = match;
+4️⃣ Optional (Better UX)
+
+Instead of an alert you can show a message:
+
+console.log("No fair match found.");
+
+But alert is useful during testing.
+
+🎮 What This Changes
+
+Before:
+
+Alice 1850 vs Bob 1400
+
+After:
+
+Alice 1850 vs Carol 1780
+Bob 1400 vs Dave 1475
+
+This produces much more realistic ladders.
+
+📊 Why This Matters for LeagueMatch
+
+Your real platform will likely use distance-based matchmaking, something like:
+
+Rating Gap
++ Distance
++ Availability
++ Confidence
+
+This is the first building block.
+
+📝 Git Message
+
+v0.19.9 - add matchmaking fairness filter to prevent large rating gap matches
+
+🚀 Next Feature That Would Make SPIN Feel Like a Real League
+
+If you want something very cool for v0.20, I recommend:
+
+🏆 Season Champion + Trophy History
+
+Example UI:
+
+Season 1 Champion 🏆
+Alice (1684)
+
+Season 2 Champion 🏆
+Bob (1711)
+
+This makes seasons feel meaningful, which is critical for LeagueMatch.
+
+If you'd like, I can also show you the next big step after v0.20 that will make SPIN feel shockingly close to a real matchmaking engine used by esports games.
+
 <!-- 
 FORMAT START
 
