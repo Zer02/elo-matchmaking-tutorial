@@ -11381,6 +11381,188 @@ v0.20 → Design Supabase table schema
 
 What direction do you want to harden next?
 
+### v.0.19.8
+**v0.19.8 → Add rating confidence (volatility tracking)**
+
+Great — this is the last major rating system feature you should add before Supabase. It makes your ratings statistically stronger and prepares SPIN for real players.
+
+🎾 SPIN v0.19.8
+Add Rating Confidence (Volatility Tracking)
+
+Right now every player is treated as equally reliable, but that’s not true.
+
+Example:
+
+Player	Matches	Rating	Confidence
+Alice	3	1650	Low
+Bob	200	1650	High
+
+Both are 1650, but Bob’s rating is far more trustworthy.
+
+We track this using a confidence score based on matches played.
+
+🧠 Concept
+
+Confidence increases with matches played.
+
+We compute:
+
+confidence = matchesPlayed / (matchesPlayed + 20)
+
+This gives a curve that stabilizes around 50–60 matches.
+
+Matches	Confidence
+0	0%
+5	20%
+10	33%
+20	50%
+50	71%
+100	83%
+200	91%
+
+This mirrors how real rating systems behave.
+
+1️⃣ Add Confidence Field to Players
+
+Update createPlayer().
+
+function createPlayer(name) {
+  return {
+    name,
+    rating: 1500,
+
+    seasonWins: 0,
+    seasonLosses: 0,
+
+    careerWins: 0,
+    careerLosses: 0,
+
+    matchesPlayed: 0,
+    confidence: 0,
+
+    eloHistory: [{ season: 1, rating: 1500 }],
+  };
+}
+2️⃣ Add Confidence Calculator
+
+Add this utility.
+
+function calculateConfidence(player) {
+  const matches = player.matchesPlayed;
+  const confidence = matches / (matches + 20);
+
+  return Math.round(confidence * 100);
+}
+3️⃣ Update Confidence After Each Match
+
+Inside simulateMatch() after recording the win.
+
+Add:
+
+winner.matchesPlayed++;
+loser.matchesPlayed++;
+
+winner.confidence = calculateConfidence(winner);
+loser.confidence = calculateConfidence(loser);
+4️⃣ Display Confidence in Standings
+
+Update the table header in renderLeague().
+
+Add:
+
+<th>Confidence</th>
+
+Then inside the player row:
+
+<td>${p.confidence}%</td>
+
+So row becomes:
+
+<tr>
+  <td><a href="#player/${encodeURIComponent(p.name)}">${p.name}</a></td>
+  <td>${p.rating.toFixed(1)}</td>
+  <td>${p.confidence}%</td>
+  <td>${p.seasonWins}-${p.seasonLosses}</td>
+  <td>${p.careerWins}-${p.careerLosses}</td>
+  <td>${winPct}%</td>
+</tr>
+5️⃣ Show Confidence on Player Profile
+
+Add to profile stats block.
+
+<p><strong>Confidence:</strong> ${player.confidence}%</p>
+
+Example:
+
+MMR: 1672
+Confidence: 73%
+Career: 32-14
+Win %: 69%
+🎯 Why This Matters
+
+This lets SPIN say things like:
+
+Alice – 1750 (Confidence 22%)
+Bob – 1710 (Confidence 91%)
+
+Meaning:
+
+Bob is probably actually stronger.
+
+That’s exactly how systems like:
+
+chess ratings
+
+tennis ratings
+
+esports matchmaking
+
+evaluate players.
+
+🧠 What This Enables Later
+
+When SPIN evolves you can:
+
+1️⃣ Variable K-Factor
+
+Low confidence players move faster.
+
+K = baseK * (1 - confidence)
+2️⃣ Matchmaking Filters
+
+Avoid pairing:
+
+High confidence 1900
+vs
+Low confidence 1900
+3️⃣ Placement Matches
+
+First 10 matches = fast rating discovery.
+
+📝 Git Message
+
+v0.19.8 - add player rating confidence metric based on matches played
+
+🚀 After This, Your Simulation Is Nearly Complete
+
+Next truly meaningful steps would be:
+
+v0.19.9
+
+Add matchmaking fairness filter (avoid extreme rating gaps)
+
+or
+
+v0.20
+
+Prepare Supabase player + match database schema
+
+Which direction do you want to push SPIN next?
+
+1️⃣ Make matchmaking smarter
+2️⃣ Prepare real player database (Supabase)
+3️⃣ Add UI improvements for league realism
+
 <!-- 
 FORMAT START
 
