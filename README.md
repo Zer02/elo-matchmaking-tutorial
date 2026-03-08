@@ -11700,9 +11700,166 @@ Alice (1684)
 Season 2 Champion 🏆
 Bob (1711)
 
-This makes seasons feel meaningful, which is critical for LeagueMatch.
 
-If you'd like, I can also show you the next big step after v0.20 that will make SPIN feel shockingly close to a real matchmaking engine used by esports games.
+### v0.20
+**Show me the next big step after v0.20 that will make SPIN feel shockingly close to a real matchmaking engine used by esports games.**
+
+Excellent — this is the feature that makes seasons feel real instead of just being a reset.
+
+🎾 SPIN v0.20
+Add Season Champion + Trophy History
+
+Now every season will produce a champion, and we’ll keep a permanent history.
+
+Example result:
+
+Season 1 Champion 🏆
+Alice – 1684
+
+Season 2 Champion 🏆
+Bob – 1711
+
+This gives your ladder:
+
+narrative
+
+prestige
+
+historical records
+
+motivation for players
+
+1️⃣ Create Champion History Storage
+
+Add this global variable near players and currentSeason.
+
+let seasonChampions = [];
+
+This stores every season winner.
+
+2️⃣ Determine Champion When Season Ends
+
+Inside your endSeason() function, before resetting players, add:
+
+const champion = players
+  .slice()
+  .sort((a, b) => b.rating - a.rating)[0];
+
+seasonChampions.push({
+  season: currentSeason,
+  name: champion.name,
+  rating: Math.round(champion.rating)
+});
+
+This captures:
+
+season number
+
+champion name
+
+final rating
+
+3️⃣ Render Champion History Section
+
+Add a new render function.
+
+function renderChampionHistory() {
+  const container = document.getElementById("champion-history");
+
+  if (!container) return;
+
+  container.innerHTML = `
+    <h2>Season Champions</h2>
+    <ul>
+      ${seasonChampions
+        .map(
+          c => `
+        <li>
+          Season ${c.season} 🏆
+          <strong>${c.name}</strong>
+          (${c.rating})
+        </li>
+      `
+        )
+        .join("")}
+    </ul>
+  `;
+}
+4️⃣ Call It After Season Ends
+
+Inside endSeason() add:
+
+renderChampionHistory();
+5️⃣ Add UI Container
+
+In your HTML add this below the standings table.
+
+<div id="champion-history"></div>
+🎨 Optional Styling
+#champion-history {
+  margin-top: 20px;
+}
+
+#champion-history li {
+  margin-bottom: 6px;
+}
+🎯 What This Adds to SPIN
+
+Before:
+
+Season resets
+
+After:
+
+Season 1 Champion 🏆 Alice
+Season 2 Champion 🏆 Bob
+Season 3 Champion 🏆 Carol
+
+Now players can say:
+
+“I won Season 4.”
+
+That’s huge for engagement.
+
+🧠 Why This Matters Before Backend
+
+When you move to a database (like Supabase), you’ll already have a clear structure:
+
+champions table
+------------
+season
+player_id
+final_rating
+
+So you won’t need to redesign anything.
+
+📝 Git Message
+
+v0.20 - add season champion tracking and trophy history
+
+🚀 Next Two Versions That Would Make SPIN Feel Much More Real
+v0.21
+
+Add leaderboard movement indicators
+
+Example:
+
+↑ +2 Alice
+↓ -1 Bob
+— Carol
+
+Players love seeing rank changes.
+
+v0.22
+
+Add rating change (+/-) color indicators
+
++18 🟢
+-12 🔴
+
+You suggested this earlier — it’s perfect once real matches exist.
+
+If you want, I can also show you one structural improvement that will make the Supabase integration about 5× easier later.
 
 <!-- 
 FORMAT START
