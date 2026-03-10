@@ -15,6 +15,17 @@ const K = 32;
 const BASE_MMR = 1500;
 const app = document.getElementById("app");
 
+/* ---------- TIERS (v0.20) ---------- */
+
+function getTier(rating) {
+  if (rating >= 2000) return "💎 Diamond";
+  if (rating >= 1800) return "🔥 Platinum";
+  if (rating >= 1650) return "🥇 Gold";
+  if (rating >= 1500) return "🥈 Silver";
+  if (rating >= 1350) return "🥉 Bronze";
+  return "🪨 Rookie";
+}
+
 window.addEventListener("hashchange", render);
 window.addEventListener("load", render);
 
@@ -157,6 +168,7 @@ function renderLeague() {
       <table>
         <tr>
           <th>Player</th>
+          <th>Tier</th>
           <th>MMR</th>
           <th>Season W-L</th>
           <th>Career W-L</th>
@@ -167,7 +179,8 @@ function renderLeague() {
             (p) => `
           <tr>
             <td><a href="#player/${encodeURIComponent(p.name)}">${p.name}</a></td>
-            <td>${p.rating.toFixed(1)}</td>
+            <td>${getTier(p.rating)}</td>
+            <td>${p.rating.toFixed(1)}</td>   
             <td>${p.seasonWins}-${p.seasonLosses}</td>
             <td>${p.careerWins}-${p.careerLosses}</td>
           </tr>
@@ -245,6 +258,7 @@ function renderProfile(name) {
 
     <div class="profile-header">
       <div class="profile-stats">
+        <p><strong>Tier:</strong> ${getTier(player.rating)}</p>
         <p><strong>MMR:</strong> ${player.rating.toFixed(1)}</p>
         <p><strong>Career:</strong> ${player.careerWins}-${player.careerLosses}</p>
         <p><strong>Win %:</strong> ${winPct}%</p>
@@ -283,9 +297,7 @@ function renderProfile(name) {
         ${
           matches
             .filter(
-              (m) =>
-                selectedSeason === "career" ||
-                m.season === selectedSeason,
+              (m) => selectedSeason === "career" || m.season === selectedSeason,
             )
             .map(
               (m) => `
