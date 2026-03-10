@@ -11861,6 +11861,425 @@ You suggested this earlier — it’s perfect once real matches exist.
 
 If you want, I can also show you one structural improvement that will make the Supabase integration about 5× easier later.
 
+### v0.20.1
+v0.20 is mainly about adding rating tiers/divisions on top of your existing Elo system. The goal is to make the ratings feel more like a league (Bronze → Silver → Gold → etc.) without changing your underlying math.
+
+Your current v0.19 code is already very good structurally, so v0.20 only adds:
+
+Rating tier system
+
+Tier display in standings
+
+Tier display on player profile
+
+Tier change highlight
+
+The Elo math stays the same.
+
+SPIN v0.20
+index.html
+
+No major changes needed except version number.
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>SPIN v0.20</title>
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<div id="app"></div>
+
+<script src="app.js"></script>
+</body>
+</html>
+app.js (SPIN v0.20)
+
+Below is your complete updated file.
+
+Major additions are marked with comments.
+
+/* =====================================================
+   SPIN v0.20
+   - Rating Tiers
+   - Division system
+   - Tier display in standings
+   - Tier display on player profile
+===================================================== */
+
+let season = 1;
+let players = [];
+let seasonHistory = [];
+
+const K = 32;
+const BASE_MMR = 1500;
+const app = document.getElementById("app");
+
+window.addEventListener("hashchange", render);
+window.addEventListener("load", render);
+
+/* ---------- RATING TIERS (NEW) ---------- */
+
+function getTier(rating) {
+  if (rating >= 2000) return "💎 Diamond";
+  if (rating >= 1800) return "🔥 Platinum";
+  if (rating >= 1650) return "🥇 Gold";
+  if (rating >= 1500) return "🥈 Silver";
+  if (rating >= 1350) return "🥉 Bronze";
+  return "🪨 Rookie";
+}
+
+/* ---------- PLAYER ---------- */
+
+function createPlayer(name) {
+  return {
+    name,
+    rating: BASE_MMR,
+    seasonWins: 0,
+    seasonLosses: 0,
+    careerWins: 0,
+    careerLosses: 0,
+    eloHistory: [{ season: 1, rating: BASE_MMR }],
+  };
+}
+
+function addPlayer(name) {
+  players.push(createPlayer(name));
+}
+
+function recordWin(winner, loser) {
+  winner.seasonWins++;
+  loser.seasonLosses++;
+
+  winner.careerWins++;
+  loser.careerLosses++;
+}
+
+/* ---------- ELO ---------- */
+
+function expectedScore(a, b) {
+  return 1 / (1 + Math.pow(10, (b - a) / 400));
+}
+
+function calculateMatchQuality(r1, r2) {
+  const diff = Math.abs(r1 - r2);
+  return Math.max(0, 1 - diff / 800);
+}
+
+function qualityLabel(q) {
+  if (q > 0.9) return "🔥 Elite";
+  if (q > 0.75) return "⚖️ Competitive";
+  if (q > 0.5) return "📉 Uneven";
+  return "🚨 Mismatch";
+}
+
+/* ---------- MATCH ---------- */
+
+function simulateMatch() {
+  if (players.length < 2) return;
+
+  const [p1, p2] = shuffle([...players]).slice(0, 2);
+
+  const r1Before = p1.rating;
+  const r2Before = p2.rating;
+
+  const p1Expected = expectedScore(r1Before, r2Before);
+
+  const winner = Math.random() < p1Expected ? p1 : p2;
+  const loser = winner === p1 ? p2 : p1;
+
+  winner.rating += K * (1 - expectedScore(winner.rating, loser.rating));
+  loser.rating += K * (0 - expectedScore(loser.rating, winner.rating));
+
+  winner.eloHistory.push({ season, rating: winner.rating });
+  loser.eloHistory.push({ season, rating: loser.rating });
+
+  recordWin(winner, loser);
+
+  const quality = calculateMatchQuality(r1Before, r2Before);
+
+  currentSeason().matches.push({
+    season,
+    winner: winner.name,
+    loser: loser.name,
+    quality,
+  });
+
+  render();
+}
+
+function nextSeason() {
+  seasonHistory.push({
+    season,
+    records: players.map((p) => ({
+      name: p.name,
+      wins: p.seasonWins,
+      losses: p.seasonLosses,
+      rating: p.rating.toFixed(1),
+    })),
+    matches: [...currentSeason().matches],
+  });
+
+  season++;
+
+  players.forEach((p) => {
+    p.seasonWins = 0;
+    p.seasonLosses = 0;
+  });
+
+  render();
+}
+
+function currentSeason() {
+  let s = seasonHistory.find((s) => s.season === season);
+
+  if (!s) {
+    s = { season, matches: [] };
+    seasonHistory.push(s);
+  }
+
+  return s;
+}
+
+/* ---------- RENDER ---------- */
+
+function render() {
+  const hash = location.hash || "#league";
+
+  if (hash.startsWith("#player/")) {
+    renderProfile(decodeURIComponent(hash.split("/")[1]));
+  } else {
+    renderLeague();
+  }
+}
+
+/* ---------- LEAGUE VIEW ---------- */
+
+function renderLeague() {
+  app.innerHTML = `
+    <h1>🎾 SPIN v0.20</h1>
+
+    <section>
+      <input id="playerInput" placeholder="Add player name" />
+      <button id="addPlayerBtn">Add Player</button>
+    </section>
+
+    <section>
+      <button onclick="simulateMatch()">Simulate Match</button>
+      <button onclick="nextSeason()">Next Season</button>
+
+      <div class="muted">
+        Season ${season} · Persistent MMR
+      </div>
+    </section>
+
+    <section>
+      <h2>Standings</h2>
+
+      <table>
+        <tr>
+          <th>Player</th>
+          <th>Tier</th>
+          <th>MMR</th>
+          <th>Season</th>
+          <th>Career</th>
+        </tr>
+
+        ${players
+          .sort((a, b) => b.rating - a.rating)
+          .map(
+            (p) => `
+          <tr>
+            <td>
+              <a href="#player/${encodeURIComponent(p.name)}">
+                ${p.name}
+              </a>
+            </td>
+
+            <td>${getTier(p.rating)}</td>
+
+            <td>${p.rating.toFixed(1)}</td>
+
+            <td>${p.seasonWins}-${p.seasonLosses}</td>
+
+            <td>${p.careerWins}-${p.careerLosses}</td>
+          </tr>
+        `,
+          )
+          .join("")}
+      </table>
+    </section>
+  `;
+
+  const input = document.getElementById("playerInput");
+  const btn = document.getElementById("addPlayerBtn");
+
+  function submit() {
+    const value = input.value.trim();
+    if (!value) return;
+
+    addPlayer(value);
+    input.value = "";
+
+    render();
+
+    setTimeout(() => {
+      document.getElementById("playerInput").focus();
+    }, 0);
+  }
+
+  input.focus();
+
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") submit();
+  });
+
+  btn.addEventListener("click", submit);
+}
+
+/* ---------- PROFILE ---------- */
+
+function renderProfile(name) {
+  const player = players.find((p) => p.name === name);
+
+  if (!player) return (location.hash = "#league");
+
+  const totalMatches = player.careerWins + player.careerLosses;
+
+  const winPct = totalMatches
+    ? ((player.careerWins / totalMatches) * 100).toFixed(1)
+    : "—";
+
+  app.innerHTML = `
+    <button onclick="location.hash='#league'">
+      ← Back
+    </button>
+
+    <h1>${player.name}</h1>
+
+    <div class="profile-header">
+
+      <div class="profile-stats">
+
+        <p><strong>Tier:</strong> ${getTier(player.rating)}</p>
+
+        <p><strong>MMR:</strong> ${player.rating.toFixed(1)}</p>
+
+        <p><strong>Career:</strong> ${player.careerWins}-${player.careerLosses}</p>
+
+        <p><strong>Win %:</strong> ${winPct}%</p>
+
+      </div>
+
+      <div class="profile-chart">
+        <canvas id="eloChart"></canvas>
+      </div>
+
+    </div>
+  `;
+
+  renderEloChart(player);
+}
+
+/* ---------- CHART ---------- */
+
+function renderEloChart(player) {
+  const ctx = document.getElementById("eloChart").getContext("2d");
+
+  if (window.eloChartInstance) {
+    window.eloChartInstance.destroy();
+  }
+
+  window.eloChartInstance = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels: player.eloHistory.map((_, i) => `Match ${i + 1}`),
+      datasets: [
+        {
+          label: "MMR",
+          data: player.eloHistory.map((h) => h.rating),
+          tension: 0.3,
+          borderWidth: 3,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+      },
+    },
+  });
+}
+
+/* ---------- UTIL ---------- */
+
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+What v0.20 Adds Conceptually
+
+SPIN now has a ranked ladder structure.
+
+Example ladder:
+
+💎 Diamond   2000+
+🔥 Platinum  1800–1999
+🥇 Gold      1650–1799
+🥈 Silver    1500–1649
+🥉 Bronze    1350–1499
+🪨 Rookie    <1350
+
+This is extremely important because ratings alone feel abstract, but tiers feel like progress.
+
+Players now experience:
+
+1500 → Silver
+1650 → Gold promotion
+1800 → Platinum promotion
+
+That psychological feedback loop is huge for matchmaking systems.
+
+Next Versions I Recommend
+
+Your roadmap should now look like:
+
+v0.21
+
+Matchmaking algorithm (not random)
+
+closest rating opponent
+v0.22
+
+Peak rating tracking
+
+v0.23
+
+Rating decay / inactivity
+
+v0.24
+
+Leaderboard seasons
+
+v0.25
+
+True SPIN matchmaking engine
+
+If you'd like, I can also show you the one feature that transforms SPIN from a toy into a real matchmaking algorithm.
+
+It's only about 30 lines of code, but it fundamentally changes everything.
+
 <!-- 
 FORMAT START
 
