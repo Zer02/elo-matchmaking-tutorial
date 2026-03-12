@@ -12280,6 +12280,166 @@ If you'd like, I can also show you the one feature that transforms SPIN from a t
 
 It's only about 30 lines of code, but it fundamentally changes everything.
 
+### v0.20.2
+**What happened to a bunch of the components? Dropdown season selector, colored lines displaying every season on the graph, match history, etc?**
+
+Good catch. Nothing “broke” in your code — my v0.20 example accidentally removed several of your v0.19 features. That version simplified the file to demonstrate tiers, but in doing so it cut out large parts of your UI system:
+
+Your v0.19 had a lot more functionality, including:
+
+Features that were removed in my example
+
+Season selector dropdown
+
+Multiple colored lines per season on the Elo chart
+
+Clickable graph lines to select season
+
+Match history list
+
+Head-to-head table
+
+Season filtering for profile
+
+Quality labels in match history
+
+Those features all live in these functions in your current code:
+
+renderHeadToHead()
+
+renderEloChart() (multi-season logic)
+
+renderProfile() (season selector + history)
+
+renderHeadToHead()
+
+renderMatchHistory() (inline)
+
+The tier system should NOT remove any of those.
+
+The Correct Way to Implement v0.20
+
+Instead of rewriting your file, v0.20 should only add ONE thing:
+
+Add a rating tier function
+
+Add this near the top.
+
+function getTier(rating) {
+  if (rating >= 2000) return "💎 Diamond";
+  if (rating >= 1800) return "🔥 Platinum";
+  if (rating >= 1650) return "🥇 Gold";
+  if (rating >= 1500) return "🥈 Silver";
+  if (rating >= 1350) return "🥉 Bronze";
+  return "🪨 Rookie";
+}
+Change 1 — Standings Table
+
+Find this in renderLeague()
+
+<th>Player</th>
+<th>MMR</th>
+<th>Season W-L</th>
+<th>Career W-L</th>
+
+Change it to:
+
+<th>Player</th>
+<th>Tier</th>
+<th>MMR</th>
+<th>Season W-L</th>
+<th>Career W-L</th>
+
+Then change the row rendering:
+
+Replace
+
+<td>${p.rating.toFixed(1)}</td>
+
+with
+
+<td>${getTier(p.rating)}</td>
+<td>${p.rating.toFixed(1)}</td>
+Change 2 — Player Profile
+
+Inside renderProfile() add Tier to the stat block.
+
+Find:
+
+<p><strong>MMR:</strong> ${player.rating.toFixed(1)}</p>
+
+Change to:
+
+<p><strong>Tier:</strong> ${getTier(player.rating)}</p>
+<p><strong>MMR:</strong> ${player.rating.toFixed(1)}</p>
+That’s it.
+
+If you do it this way, ALL of your v0.19 features remain:
+
+✔ season selector
+✔ multi-season graph
+✔ clickable graph lines
+✔ match history
+✔ head-to-head
+✔ quality labels
+✔ season filtering
+
+And you gain tiers.
+
+What Your System Actually Is Now
+
+Your current system is already surprisingly sophisticated:
+
+SPIN v0.19 includes
+
+Elo rating
+
+season history
+
+persistent career stats
+
+match quality scoring
+
+multi-season rating graph
+
+head-to-head statistics
+
+season filtering
+
+peak markers
+
+interactive chart navigation
+
+That's already very close to a real matchmaking analytics dashboard.
+
+The Real v0.20 Upgrade I'd Recommend
+
+Not tiers.
+
+The most important feature missing right now is:
+
+Rating change display
+
+Example match history:
+
+Season 3: Won vs Alex (+18)
+Season 3: Lost to Maya (-11)
+Season 3: Won vs Leo (+23)
+
+Players care about rating change more than rating itself.
+
+This makes the system feel like:
+
+Chess.com
+
+Riot ranked ladder
+
+tennis UTR changes
+
+And it only requires storing ratingBefore and ratingAfter.
+
+If you'd like, I can also show you the v0.21 change that transforms SPIN from random simulation into a real matchmaking algorithm (the core of what LeagueMatch/SPIN is supposed to be). It's a small change but conceptually huge.
+
 <!-- 
 FORMAT START
 
