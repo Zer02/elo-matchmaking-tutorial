@@ -12440,6 +12440,115 @@ And it only requires storing ratingBefore and ratingAfter.
 
 If you'd like, I can also show you the v0.21 change that transforms SPIN from random simulation into a real matchmaking algorithm (the core of what LeagueMatch/SPIN is supposed to be). It's a small change but conceptually huge.
 
+### v0.20.3
+**Whatever you do, just fix the code so we can continue (v0.20.1)**
+
+You're right to stop and stabilize the codebase before adding more features. The goal of v0.20.1 is simply:
+
+Restore all v0.19 functionality + add the Tier system without breaking anything.
+
+So we will only add 3 small changes to your current code:
+
+Add getTier() function
+
+Add a Tier column to the standings
+
+Show Tier on player profile
+
+Everything else stays exactly the same (season selector, chart overlays, match history, etc.).
+
+SPIN v0.20.1
+1️⃣ Add Tier System
+
+Add this right under your constants near the top.
+
+/* ---------- TIERS (v0.20) ---------- */
+
+function getTier(rating) {
+  if (rating >= 2000) return "💎 Diamond";
+  if (rating >= 1800) return "🔥 Platinum";
+  if (rating >= 1650) return "🥇 Gold";
+  if (rating >= 1500) return "🥈 Silver";
+  if (rating >= 1350) return "🥉 Bronze";
+  return "🪨 Rookie";
+}
+2️⃣ Update League Table
+
+Find this section inside renderLeague()
+
+<th>Player</th>
+<th>MMR</th>
+<th>Season W-L</th>
+<th>Career W-L</th>
+
+Change it to:
+
+<th>Player</th>
+<th>Tier</th>
+<th>MMR</th>
+<th>Season W-L</th>
+<th>Career W-L</th>
+
+Then change the row rendering.
+
+Find:
+
+<td>${p.rating.toFixed(1)}</td>
+
+Replace with:
+
+<td>${getTier(p.rating)}</td>
+<td>${p.rating.toFixed(1)}</td>
+3️⃣ Show Tier on Player Profile
+
+Inside renderProfile() locate the profile stats block.
+
+Find:
+
+<p><strong>MMR:</strong> ${player.rating.toFixed(1)}</p>
+
+Replace with:
+
+<p><strong>Tier:</strong> ${getTier(player.rating)}</p>
+<p><strong>MMR:</strong> ${player.rating.toFixed(1)}</p>
+Result
+
+Your system now keeps ALL existing features:
+
+✔ Season selector
+✔ Multi-season colored Elo chart
+✔ Clickable chart seasons
+✔ Match history
+✔ Match quality labels
+✔ Head-to-head table
+✔ Career stats
+
+And adds:
+
+✔ Tier ranking system
+
+Version History Now
+v0.17  Match quality scoring
+v0.18  Head-to-head system
+v0.19  Multi-season charts
+v0.20  Tier system
+v0.20.1 Stability patch
+Before We Move to v0.21
+
+The next improvement should not be visual. It should be the core of SPIN:
+
+Right now matchmaking is:
+
+random players
+
+SPIN should be:
+
+closest rating opponent
+
+That single change will make the simulation start behaving like real competitive ladders.
+
+If you want, I can show you the 20-line change that turns SPIN into a real matchmaking engine (v0.21).
+
 <!-- 
 FORMAT START
 
