@@ -12547,7 +12547,160 @@ closest rating opponent
 
 That single change will make the simulation start behaving like real competitive ladders.
 
-If you want, I can show you the 20-line change that turns SPIN into a real matchmaking engine (v0.21).
+### v0.20.4
+**Show me the 20-line change that turns SPIN into a real matchmaking engine (v0.21).**
+
+Great — v0.21 is the first real step toward SPIN as a matchmaking algorithm instead of a random simulator.
+
+Right now your system does this:
+
+const [p1, p2] = shuffle([...players]).slice(0, 2);
+
+That means a 2000 player could play a 1200 player, which ruins the ladder realism.
+
+Instead, SPIN should match players with the closest rating.
+
+This is exactly what Chess.com, Riot, and most matchmaking systems do first.
+
+SPIN v0.21 — Rating-Based Matchmaking
+
+We will add one new function:
+
+findBestOpponent(player)
+
+Then modify simulateMatch().
+
+1️⃣ Add the Matchmaking Function
+
+Add this near your UTIL section.
+
+/* ---------- MATCHMAKING (SPIN v0.21) ---------- */
+
+function findBestOpponent(player) {
+  let bestOpponent = null;
+  let smallestDiff = Infinity;
+
+  players.forEach((p) => {
+    if (p === player) return;
+
+    const diff = Math.abs(p.rating - player.rating);
+
+    if (diff < smallestDiff) {
+      smallestDiff = diff;
+      bestOpponent = p;
+    }
+  });
+
+  return bestOpponent;
+}
+
+What this does:
+
+Player A rating = 1600
+
+Possible opponents
+1550 diff 50
+1620 diff 20
+1800 diff 200
+
+SPIN chooses → 1620
+2️⃣ Replace Random Opponent Selection
+
+Find this in simulateMatch():
+
+const [p1, p2] = shuffle([...players]).slice(0, 2);
+
+Replace it with:
+
+const p1 = shuffle([...players])[0];
+const p2 = findBestOpponent(p1);
+3️⃣ Safety Check
+
+Add this just after:
+
+if (!p2) return;
+
+Full start of function becomes:
+
+function simulateMatch() {
+  if (players.length < 2) return;
+
+  const p1 = shuffle([...players])[0];
+  const p2 = findBestOpponent(p1);
+
+  if (!p2) return;
+Result
+
+Matches now look like:
+
+1600 vs 1580
+1450 vs 1470
+1720 vs 1690
+
+Instead of:
+
+2000 vs 1200
+1750 vs 1300
+1600 vs 900
+
+This makes:
+
+Elo movement more realistic
+
+tiers stabilize
+
+the ladder naturally stratify
+
+Exactly what real ranking systems do.
+
+What You'll Notice Immediately
+
+After simulating ~200 matches:
+
+You’ll see natural skill clusters form.
+
+Example ladder:
+
+Diamond 2050
+Diamond 2010
+
+Platinum 1880
+Platinum 1810
+
+Gold 1700
+Gold 1670
+
+Silver 1540
+Silver 1510
+
+Instead of everyone drifting randomly.
+
+SPIN is now starting to resemble a real system.
+
+Version progression now looks like:
+
+v0.17 match quality
+v0.18 head-to-head
+v0.19 seasonal analytics
+v0.20 tiers
+v0.21 matchmaking algorithm
+The Next Feature (v0.22) Is Actually Huge
+
+Right now your matchmaking is still instant.
+
+Real matchmaking systems use search widening.
+
+Example:
+
+0–5 sec   ±25 rating
+5–10 sec  ±50 rating
+10–20 sec ±100 rating
+
+This is how Riot / Blizzard queues work.
+
+Implementing this will make SPIN feel like a real matchmaking engine, not just an Elo simulator.
+
+And surprisingly, it's only about 30 lines of code.
 
 <!-- 
 FORMAT START
