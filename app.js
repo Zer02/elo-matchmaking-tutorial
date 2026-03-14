@@ -77,7 +77,10 @@ function qualityLabel(q) {
 function simulateMatch() {
   if (players.length < 2) return;
 
-  const [p1, p2] = shuffle([...players]).slice(0, 2);
+  const p1 = shuffle([...players])[0];
+  const p2 = findBestOpponent(p1);
+
+  if (!p2) return;
 
   const r1Before = p1.rating;
   const r2Before = p2.rating;
@@ -150,7 +153,7 @@ function render() {
 
 function renderLeague() {
   app.innerHTML = `
-    <h1>🎾 SPIN v.0.19</h1>
+    <h1>🎾 SPIN v.0.21</h1>
 
     <section>
       <input id="playerInput" placeholder="Add player name" />
@@ -495,4 +498,24 @@ function shuffle(arr) {
     [arr[i], arr[j]] = [arr[j], arr[i]];
   }
   return arr;
+}
+
+/* ---------- MATCHMAKING (SPIN v0.21) ---------- */
+
+function findBestOpponent(player) {
+  let bestOpponent = null;
+  let smallestDiff = Infinity;
+
+  players.forEach((p) => {
+    if (p === player) return;
+
+    const diff = Math.abs(p.rating - player.rating);
+
+    if (diff < smallestDiff) {
+      smallestDiff = diff;
+      bestOpponent = p;
+    }
+  });
+
+  return bestOpponent;
 }
