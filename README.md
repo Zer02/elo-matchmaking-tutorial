@@ -12547,7 +12547,7 @@ closest rating opponent
 
 That single change will make the simulation start behaving like real competitive ladders.
 
-### v0.20.4
+### v0.21
 **Show me the 20-line change that turns SPIN into a real matchmaking engine (v0.21).**
 
 Great — v0.21 is the first real step toward SPIN as a matchmaking algorithm instead of a random simulator.
@@ -12701,6 +12701,184 @@ This is how Riot / Blizzard queues work.
 Implementing this will make SPIN feel like a real matchmaking engine, not just an Elo simulator.
 
 And surprisingly, it's only about 30 lines of code.
+
+### v0.22
+**Is that kind of matchmaking necessary if the league isn't as big as the LoL playerbase? There will be players of very different skill levels playing occasionally**
+
+Great question — and the answer is no, strict matchmaking is not always ideal for a small league, especially one like the tennis ecosystem you're imagining for SPIN / LeagueMatch.
+
+In fact, real sports leagues do not match purely by rating.
+
+Your intuition is actually pointing toward something more realistic.
+
+How Matchmaking Works in Small Real-World Systems
+
+In something like:
+
+a tennis club
+
+a local ladder
+
+a pickleball league
+
+even something like chess clubs
+
+players often play whoever is available, not the mathematically closest opponent.
+
+Example:
+
+Players present at club tonight:
+
+1800
+1650
+1500
+1480
+1300
+1100
+
+The 1800 might still play the 1500 because:
+
+they are both available
+
+they want to play
+
+no one else is around
+
+The rating system absorbs the mismatch.
+
+What SPIN Should Actually Do
+
+Instead of hard matchmaking, SPIN should do:
+
+Soft matchmaking
+
+Prefer closer opponents, but don't require it.
+
+Conceptually:
+
+Step 1 — choose a random player
+Step 2 — prefer closer ratings
+Step 3 — but allow wider matches
+The Real SPIN Algorithm (Simple Version)
+
+Instead of:
+
+pick closest opponent
+
+You do:
+
+pick opponent with weighted probability
+based on rating difference
+
+Example:
+
+Rating Diff	Match Chance
+0-50	very high
+50-100	high
+100-200	medium
+200+	low but possible
+
+So matches like:
+
+1600 vs 1580  ✓ common
+1600 vs 1480  ✓ happens
+1600 vs 1200  ✓ rare but possible
+
+This is actually closer to how recreational sports work.
+
+Why This Is Important for LeagueMatch
+
+Your vision (from your earlier ideas about 1v1 competition and tennis clubs) isn't a queue-based video game.
+
+It's closer to:
+
+tennis ladders
+
+challenge systems
+
+local sport ecosystems
+
+Those systems prioritize:
+
+playability > perfect matchmaking
+
+People want to play more than they want perfect matches.
+
+The SPIN Philosophy (This is important)
+
+Instead of saying:
+
+SPIN creates perfect matches
+
+The real philosophy should be:
+
+SPIN measures skill from imperfect matches
+
+That’s much more powerful.
+
+It means:
+
+beginners can play experts
+
+friends can play friends
+
+random matches still improve the rating model
+
+And the rating system learns over time.
+
+The Real Problem SPIN Should Solve
+
+Not matchmaking.
+
+The real problem is:
+
+How do we measure skill accurately when matchups are messy?
+
+That’s actually a much harder and more interesting applied math problem.
+
+If I Were Designing SPIN Properly
+
+The roadmap would look like this:
+
+v0.21 weighted matchmaking
+v0.22 rating volatility
+v0.23 uncertainty rating (Glicko-style)
+v0.24 inactivity decay
+v0.25 peak rating tracking
+
+At v0.23, SPIN starts becoming a serious rating system, not just Elo.
+
+The Deep Insight You Already Had
+
+Earlier you said LeagueMatch was about 1v1 rivalry energy.
+
+That's actually the correct design lens.
+
+Players don't want:
+
+perfect statistical opponent
+
+They want:
+
+a worthy rival
+
+That can be:
+
+slightly stronger
+
+slightly weaker
+
+same skill
+
+sometimes way stronger
+
+The story of competition matters more than perfect balance.
+
+If you'd like, I can also show you something fascinating:
+
+The single biggest flaw in Elo if you try to use it for recreational tennis.
+
+Fixing that is actually what would make SPIN mathematically interesting (and different from every ladder system).
 
 <!-- 
 FORMAT START
