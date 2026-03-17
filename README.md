@@ -12880,6 +12880,190 @@ The single biggest flaw in Elo if you try to use it for recreational tennis.
 
 Fixing that is actually what would make SPIN mathematically interesting (and different from every ladder system).
 
+### v0.23
+**What should the plan be for v0.23?**
+
+For SPIN’s evolution, the key is not to add random features but to build toward a credible skill rating system that works in messy real-world environments like tennis clubs (which fits your LeagueMatch vision).
+
+By v0.20–v0.21 you already have:
+
+Elo rating
+
+persistent seasons
+
+match history
+
+head-to-head
+
+tier ladder
+
+rating graphs
+
+match quality score
+
+So the next step shouldn’t be UI — it should be better rating mathematics.
+
+The Plan for v0.23
+
+v0.23 should introduce a Rating Uncertainty system.
+
+This is the core idea behind systems like Glicko rating system and TrueSkill rating system.
+
+Instead of assuming every rating is equally reliable, SPIN would track how confident the system is about a player's rating.
+
+Why This Matters for LeagueMatch
+
+In recreational sports:
+
+New players join all the time
+
+Some players only play occasionally
+
+Some players improve quickly
+
+Some players stop playing
+
+Standard Elo rating system assumes everyone’s rating certainty is the same, which is unrealistic.
+
+Example:
+
+Player	Matches	Rating	Reality
+Alice	3	1600	probably inaccurate
+Bob	120	1600	very reliable
+
+Elo treats them identically.
+
+SPIN shouldn’t.
+
+The Concept for v0.23
+
+Each player gains a new property:
+
+uncertainty
+
+Example:
+
+{
+  name: "Alex",
+  rating: 1500,
+  uncertainty: 350
+}
+
+Interpretation:
+
+1500 ± 350
+
+Meaning the player could realistically be anywhere from:
+
+1150 – 1850
+
+As they play more matches:
+
+uncertainty decreases
+How This Improves the System
+1️⃣ Faster skill discovery
+
+New players move quickly toward their real rating.
+
+2️⃣ Stable veterans
+
+Experienced players change rating more slowly.
+
+3️⃣ Better matchmaking signals
+
+SPIN can prefer matches where uncertainty can shrink.
+
+Example Match Scenario
+
+Player A:
+
+rating 1500
+uncertainty 350
+
+Player B:
+
+rating 1600
+uncertainty 40
+
+If A wins:
+
+A gains a lot
+B loses a little
+
+Because A's rating was uncertain.
+
+Code Changes Required (Conceptually)
+Player object
+uncertainty: 350
+Rating change multiplier
+
+Instead of constant K:
+
+effectiveK = baseK * (uncertainty / 350)
+
+So:
+
+Player	Uncertainty	K
+new player	350	32
+veteran	80	7
+Uncertainty decay
+
+After each match:
+
+uncertainty *= 0.97
+
+Lower bound:
+
+uncertainty >= 60
+What SPIN Becomes After v0.23
+
+Your system evolves from:
+
+Elo simulator
+
+to something closer to:
+
+Glicko-lite rating system
+
+That’s a big step mathematically.
+
+Version Roadmap
+
+A clean roadmap might look like this:
+
+v0.20 tiers
+v0.21 matchmaking preference
+v0.22 rating change display
+v0.23 rating uncertainty
+v0.24 inactivity decay
+v0.25 peak rating tracking
+
+After that, the system is actually sophisticated enough for a real sports platform.
+
+The Cool Part
+
+Once SPIN has uncertainty, you unlock something powerful:
+
+You can build smart matchmaking recommendations.
+
+Example:
+
+Best match for you tonight:
+
+Chris
+Rating 1540
+High information gain match
+
+Meaning the match would teach the system a lot about both players.
+
+That’s the kind of algorithm that would make LeagueMatch genuinely interesting from an applied math perspective.
+
+If you'd like, I can also show you something fascinating:
+
+The one metric tennis leagues desperately need but almost none of them track.
+
+It would fit perfectly into SPIN around v0.24 and make your system far more insightful than most ranking ladders.
+
 <!-- 
 FORMAT START
 
