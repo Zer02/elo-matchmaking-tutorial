@@ -13064,6 +13064,167 @@ The one metric tennis leagues desperately need but almost none of them track.
 
 It would fit perfectly into SPIN around v0.24 and make your system far more insightful than most ranking ladders.
 
+### v0.23.1
+**So what changes do I have to make to the code for this version?**
+
+Perfect — let’s implement v0.23 (Uncertainty System) in a way that:
+
+✅ Does NOT break your existing features
+
+✅ Keeps your UI intact (charts, seasons, history, etc.)
+
+✅ Only upgrades the math layer
+
+We’re basically turning your Elo into a Glicko-lite system.
+
+✅ Overview of Changes
+
+You will make 4 small but powerful changes:
+
+1. Add uncertainty to each player
+2. Replace fixed K with dynamic K (based on uncertainty)
+3. Add uncertainty decay after matches
+4. Display uncertainty in the UI
+1️⃣ Add Uncertainty to Player
+
+Find createPlayer() and update it:
+
+BEFORE
+rating: BASE_MMR,
+AFTER
+rating: BASE_MMR,
+uncertainty: 350, // NEW
+2️⃣ Add Helper Function (Dynamic K)
+
+Add this near your ELO section:
+
+/* ---------- UNCERTAINTY (v0.23) ---------- */
+
+function getEffectiveK(player) {
+  const baseK = 32;
+
+  // Scale K based on uncertainty (max at 350)
+  return baseK * (player.uncertainty / 350);
+}
+3️⃣ Modify simulateMatch()
+
+This is the core change.
+
+Find this section:
+winner.rating += K * (1 - expectedScore(winner.rating, loser.rating));
+loser.rating += K * (0 - expectedScore(loser.rating, winner.rating));
+Replace with:
+const winnerK = getEffectiveK(winner);
+const loserK = getEffectiveK(loser);
+
+winner.rating += winnerK * (1 - expectedScore(winner.rating, loser.rating));
+loser.rating += loserK * (0 - expectedScore(loser.rating, winner.rating));
+4️⃣ Add Uncertainty Decay
+
+Right after updating ratings, add:
+
+/* ---------- UNCERTAINTY DECAY ---------- */
+
+winner.uncertainty = Math.max(60, winner.uncertainty * 0.97);
+loser.uncertainty = Math.max(60, loser.uncertainty * 0.97);
+5️⃣ Display Uncertainty (Profile Page)
+
+Inside renderProfile() find your stats section.
+
+Add this line under MMR:
+
+<p><strong>Uncertainty:</strong> ±${player.uncertainty.toFixed(0)}</p>
+6️⃣ (Optional but Recommended) Show in Standings
+
+In your table header add:
+
+<th>±</th>
+
+And in each row:
+
+<td>±${p.uncertainty.toFixed(0)}</td>
+🧠 What This Actually Does
+
+Now your system behaves like:
+
+New player
+1500 ± 350
+→ huge rating swings
+→ fast skill discovery
+Veteran player
+1600 ± 70
+→ small rating changes
+→ stable ranking
+🔥 Example Match (Now)
+
+Before (Elo):
+
+Upset win = always same impact
+
+Now (SPIN v0.23):
+
+New player beats veteran:
+→ new player gains BIG
+→ veteran loses small
+
+That’s much closer to reality.
+
+⚠️ Important Note
+
+This is not full Glicko yet — it's a simplified version.
+
+We are NOT yet doing:
+
+rating deviation math
+
+time-based uncertainty increase
+
+volatility tracking
+
+But this version is:
+
+Simple ✅
+Stable ✅
+Much more realistic ✅
+📈 What You Should Notice After ~100 Matches
+
+Ratings stabilize faster
+
+New players climb/drop quickly
+
+Top players become harder to move
+
+Tiers feel more “earned”
+
+🚀 What Comes Next (v0.24)
+
+Now that uncertainty exists, the next logical step is:
+
+Inactivity Decay
+If player doesn't play:
+→ uncertainty increases
+→ rating becomes less trusted
+
+This solves a HUGE real-world problem:
+
+"Inactive top player still ranked #1"
+⚡ Big Picture
+
+At this point, SPIN is no longer:
+
+just an Elo simulator
+
+It’s becoming:
+
+a real rating system for messy, real-world competition
+
+Which is exactly what your LeagueMatch vision needs.
+
+If you want, next I can help you:
+
+👉 Add rating gain/loss display (+18 / -12) (v0.22, quick win)
+👉 Or jump to inactivity decay (v0.24) which makes the system feel alive over time
+
 <!-- 
 FORMAT START
 
