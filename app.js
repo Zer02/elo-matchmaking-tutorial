@@ -35,6 +35,7 @@ function createPlayer(name) {
   return {
     name,
     rating: BASE_MMR,
+    uncertainty: 350, // NEW
     seasonWins: 0,
     seasonLosses: 0,
     careerWins: 0,
@@ -72,6 +73,15 @@ function qualityLabel(q) {
   return "🚨 Mismatch";
 }
 
+/* ---------- UNCERTAINTY (v0.23) ---------- */
+
+function getEffectiveK(player) {
+  const baseK = 32;
+
+  // Scale K based on uncertainty (max at 350)
+  return baseK * (player.uncertainty / 350);
+}
+
 /* ---------- MATCH ---------- */
 
 function simulateMatch() {
@@ -89,8 +99,15 @@ function simulateMatch() {
   const winner = Math.random() < p1Expected ? p1 : p2;
   const loser = winner === p1 ? p2 : p1;
 
-  winner.rating += K * (1 - expectedScore(winner.rating, loser.rating));
-  loser.rating += K * (0 - expectedScore(loser.rating, winner.rating));
+  const winnerK = getEffectiveK(winner);
+  const loserK = getEffectiveK(loser);
+
+  winner.rating += winnerK * (1 - expectedScore(winner.rating, loser.rating));
+  loser.rating += loserK * (0 - expectedScore(loser.rating, winner.rating));
+
+  /* ---------- UNCERTAINTY DECAY ---------- */
+  winner.uncertainty = Math.max(60, winner.uncertainty * 0.97);
+  loser.uncertainty = Math.max(60, loser.uncertainty * 0.97);
 
   winner.eloHistory.push({ season, rating: winner.rating });
   loser.eloHistory.push({ season, rating: loser.rating });
@@ -153,7 +170,7 @@ function render() {
 
 function renderLeague() {
   app.innerHTML = `
-    <h1>🎾 SPIN v.0.21</h1>
+    <h1>🎾 SPIN v.0.23</h1>
 
     <section>
       <input id="playerInput" placeholder="Add player name" />
@@ -229,9 +246,7 @@ function renderProfile(name) {
   if (!player) return (location.hash = "#league");
 
   const selectedSeason =
-  window.selectedSeason !== undefined
-    ? window.selectedSeason
-    : season; // default to current season
+    window.selectedSeason !== undefined ? window.selectedSeason : season; // default to current season
 
   const availableSeasons = [
     ...new Set(
@@ -263,6 +278,7 @@ function renderProfile(name) {
       <div class="profile-stats">
         <p><strong>Tier:</strong> ${getTier(player.rating)}</p>
         <p><strong>MMR:</strong> ${player.rating.toFixed(1)}</p>
+        <p><strong>Uncertainty:</strong> ±${player.uncertainty.toFixed(0)}</p>
         <p><strong>Career:</strong> ${player.careerWins}-${player.careerLosses}</p>
         <p><strong>Win %:</strong> ${winPct}%</p>
       </div>
@@ -320,8 +336,7 @@ function renderProfile(name) {
 
   document.getElementById("seasonSelect").addEventListener("change", (e) => {
     const value = e.target.value;
-    window.selectedSeason =
-      value === "career" ? "career" : Number(value);
+    window.selectedSeason = value === "career" ? "career" : Number(value);
     renderProfile(name);
   });
 
@@ -334,11 +349,9 @@ function renderHeadToHead(name, selectedSeason) {
   seasonHistory.forEach((s) => {
     (s.matches || []).forEach((m) => {
       if (m.winner !== name && m.loser !== name) return;
-      if (selectedSeason !== "career" && m.season !== selectedSeason)
-        return;
+      if (selectedSeason !== "career" && m.season !== selectedSeason) return;
 
-      const opponent =
-        m.winner === name ? m.loser : m.winner;
+      const opponent = m.winner === name ? m.loser : m.winner;
 
       if (!h2h[opponent]) {
         h2h[opponent] = { wins: 0, losses: 0 };
@@ -352,9 +365,7 @@ function renderHeadToHead(name, selectedSeason) {
   const rows = Object.entries(h2h)
     .map(([opponent, record]) => {
       const total = record.wins + record.losses;
-      const pct = total
-        ? ((record.wins / total) * 100).toFixed(1)
-        : "—";
+      const pct = total ? ((record.wins / total) * 100).toFixed(1) : "—";
 
       return `
         <tr>
@@ -388,9 +399,7 @@ function renderEloChart(player, seasons, playerName) {
   }
 
   const selectedSeason =
-    window.selectedSeason !== undefined
-      ? window.selectedSeason
-      : season;
+    window.selectedSeason !== undefined ? window.selectedSeason : season;
 
   const palette = [
     "#60a5fa",
@@ -401,49 +410,48 @@ function renderEloChart(player, seasons, playerName) {
     "#14b8a6",
   ];
 
-  const datasets = seasons.map((s, index) => {
-    const seasonData = player.eloHistory.filter(
-      (h) => h.season === s
-    );
+  const datasets = seasons
+    .map((s, index) => {
+      const seasonData = player.eloHistory.filter((h) => h.season === s);
 
-    const ratings = seasonData.map((h) => h.rating);
+      const ratings = seasonData.map((h) => h.rating);
 
-    if (!ratings.length) return null;
+      if (!ratings.length) return null;
 
-    const peakValue = Math.max(...ratings);
-    const peakIndex = ratings.indexOf(peakValue);
+      const peakValue = Math.max(...ratings);
+      const peakIndex = ratings.indexOf(peakValue);
 
-    const baseColor = palette[index % palette.length];
+      const baseColor = palette[index % palette.length];
 
-    const isSelected =
-      selectedSeason === "career"
-        ? true
-        : s === selectedSeason;
+      const isSelected =
+        selectedSeason === "career" ? true : s === selectedSeason;
 
-    return {
-      label: `Season ${s}`,
-      data: ratings,
-      borderWidth: isSelected ? 4 : 1.5,
-      borderColor: isSelected
-        ? baseColor
-        : baseColor + "55",
-      tension: 0.3,
-      pointRadius: (ctx) =>
-        ctx.dataIndex === peakIndex
-          ? (isSelected ? 7 : 5)
-          : (isSelected ? 3 : 2),
-      pointBackgroundColor: (ctx) =>
-        ctx.dataIndex === peakIndex
-          ? baseColor
-          : isSelected
+      return {
+        label: `Season ${s}`,
+        data: ratings,
+        borderWidth: isSelected ? 4 : 1.5,
+        borderColor: isSelected ? baseColor : baseColor + "55",
+        tension: 0.3,
+        pointRadius: (ctx) =>
+          ctx.dataIndex === peakIndex
+            ? isSelected
+              ? 7
+              : 5
+            : isSelected
+              ? 3
+              : 2,
+        pointBackgroundColor: (ctx) =>
+          ctx.dataIndex === peakIndex
             ? baseColor
-            : baseColor + "55",
-      pointBorderWidth: (ctx) =>
-        ctx.dataIndex === peakIndex ? 2 : 0,
-      pointBorderColor: "#ffffff",
-      order: isSelected ? 0 : 1,
-    };
-  }).filter(Boolean);
+            : isSelected
+              ? baseColor
+              : baseColor + "55",
+        pointBorderWidth: (ctx) => (ctx.dataIndex === peakIndex ? 2 : 0),
+        pointBorderColor: "#ffffff",
+        order: isSelected ? 0 : 1,
+      };
+    })
+    .filter(Boolean);
 
   window.eloChartInstance = new Chart(ctx, {
     type: "line",
@@ -500,7 +508,7 @@ function shuffle(arr) {
   return arr;
 }
 
-/* ---------- MATCHMAKING (SPIN v0.21) ---------- */
+/* ---------- MATCHMAKING (SPIN) ---------- */
 
 function findBestOpponent(player) {
   let bestOpponent = null;
