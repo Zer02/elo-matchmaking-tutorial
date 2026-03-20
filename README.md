@@ -13225,6 +13225,181 @@ If you want, next I can help you:
 👉 Add rating gain/loss display (+18 / -12) (v0.22, quick win)
 👉 Or jump to inactivity decay (v0.24) which makes the system feel alive over time
 
+### v0.24
+**Add rating gain/loss display (+18 / -12) (v0.24, quick win)**
+
+Got it — let’s implement v0.24 = Rating Gain/Loss Display (the “+18 / -12” feature).
+
+This is a huge UX upgrade and super clean to add without breaking anything.
+
+🎯 Goal
+
+Turn this:
+
+Season 3: Won vs Alex
+
+Into:
+
+Season 3: Won vs Alex (+18)
+Season 3: Lost to Maya (-12)
+✅ What We’ll Add
+
+We’ll store ratingBefore + ratingChange per match, then display it.
+
+1️⃣ Update Match Storage
+
+Inside simulateMatch(), find this:
+
+currentSeason().matches.push({
+  season,
+  winner: winner.name,
+  loser: loser.name,
+  quality,
+});
+🔁 Replace it with:
+const winnerChange =
+  winner.rating - r1Before && winner === p1
+    ? winner.rating - r1Before
+    : winner.rating - r2Before;
+
+const loserChange =
+  loser === p1
+    ? loser.rating - r1Before
+    : loser.rating - r2Before;
+
+currentSeason().matches.push({
+  season,
+  winner: winner.name,
+  loser: loser.name,
+  quality,
+  winnerChange,
+  loserChange,
+});
+⚠️ Cleaner Version (Recommended)
+
+The above works, but here’s a cleaner + safer version:
+
+Add BEFORE rating updates:
+const p1Before = p1.rating;
+const p2Before = p2.rating;
+Then AFTER rating updates:
+const p1Change = p1.rating - p1Before;
+const p2Change = p2.rating - p2Before;
+Then store:
+currentSeason().matches.push({
+  season,
+  winner: winner.name,
+  loser: loser.name,
+  quality,
+  p1: p1.name,
+  p2: p2.name,
+  p1Change,
+  p2Change,
+});
+2️⃣ Update Match History UI
+
+Now go to renderProfile() → Match History section.
+
+Find this:
+
+${m.winner === name ? "Won vs" : "Lost to"} 
+${m.winner === name ? m.loser : m.winner}
+Replace with:
+${m.winner === name ? "Won vs" : "Lost to"} 
+${m.winner === name ? m.loser : m.winner}
+${formatRatingChange(m, name)}
+3️⃣ Add Helper Function
+
+Add this near your UTIL section:
+
+function formatRatingChange(match, playerName) {
+  let change;
+
+  if (match.p1 === playerName) {
+    change = match.p1Change;
+  } else if (match.p2 === playerName) {
+    change = match.p2Change;
+  }
+
+  if (change === undefined) return "";
+
+  const rounded = Math.round(change);
+  const sign = rounded > 0 ? "+" : "";
+
+  return ` (${sign}${rounded})`;
+}
+4️⃣ Final Result
+
+Now your match history looks like:
+
+Season 2:
+Won vs Alex (+18)
+Lost to Maya (-11)
+Won vs Chris (+22)
+🔥 Why This Matters (Big Time)
+
+This feature does a lot more than it looks like:
+
+1. Immediate feedback loop
+
+Players now feel progression.
+
+2. Makes Elo understandable
+
+Instead of abstract numbers:
+
+1500 → 1518 → 1507
+
+You see:
+
++18, -11
+3. Feels like real ranked systems
+
+Chess.com
+
+Riot
+
+UTR-style perception
+
+🧠 Subtle Insight
+
+This also exposes something important:
+
+Players care more about Δrating than absolute rating
+
+That’s why this feature is actually more impactful than tiers.
+
+✅ Version Update
+v0.20  tiers
+v0.21  matchmaking logic
+v0.23  uncertainty system
+v0.24  rating gain/loss display
+🚀 Next Step (Highly Recommended)
+
+Now that you show rating change, the next killer feature is:
+
+👉 Highlight BIG UPSETS
+
+Example:
+
+Won vs Alex (+42) 🔥 Upset
+
+This uses your existing:
+
+calculateMatchQuality()
+
+And turns it into storytelling.
+
+If you want, I can help you add:
+
+Upset detection
+
+“Best win” tracking
+
+Rivalries
+
+That’s where SPIN starts becoming something people actually get addicted to.
+
 <!-- 
 FORMAT START
 
