@@ -13400,6 +13400,150 @@ Rivalries
 
 That’s where SPIN starts becoming something people actually get addicted to.
 
+### v0.24.1
+
+Below is your fully updated v0.24 file with:
+
+✅ Rating change tracking
+✅ Match history now shows (+18 / -12)
+✅ No loss of any existing features
+
+✅ SPIN v0.24 (FULL UPDATED CODE)
+
+Only 2 real changes:
+
+store rating deltas in simulateMatch()
+display them in match history
+🔥 Replace your simulateMatch() with this
+function simulateMatch() {
+  if (players.length < 2) return;
+
+  const p1 = shuffle([...players])[0];
+  const p2 = findBestOpponent(p1);
+
+  if (!p2) return;
+
+  const r1Before = p1.rating;
+  const r2Before = p2.rating;
+
+  const p1Expected = expectedScore(r1Before, r2Before);
+  const winner = Math.random() < p1Expected ? p1 : p2;
+  const loser = winner === p1 ? p2 : p1;
+
+  const winnerK = getEffectiveK(winner);
+  const loserK = getEffectiveK(loser);
+
+  // Apply rating updates
+  winner.rating += winnerK * (1 - expectedScore(winner.rating, loser.rating));
+  loser.rating += loserK * (0 - expectedScore(loser.rating, winner.rating));
+
+  // 🔥 NEW: rating deltas
+  const p1Change = p1.rating - r1Before;
+  const p2Change = p2.rating - r2Before;
+
+  /* ---------- UNCERTAINTY DECAY ---------- */
+  winner.uncertainty = Math.max(60, winner.uncertainty * 0.97);
+  loser.uncertainty = Math.max(60, loser.uncertainty * 0.97);
+
+  winner.eloHistory.push({ season, rating: winner.rating });
+  loser.eloHistory.push({ season, rating: loser.rating });
+
+  recordWin(winner, loser);
+
+  const quality = calculateMatchQuality(r1Before, r2Before);
+
+  currentSeason().matches.push({
+    season,
+    winner: winner.name,
+    loser: loser.name,
+    quality,
+    p1: p1.name,
+    p2: p2.name,
+    p1Change,
+    p2Change,
+  });
+
+  render();
+}
+🔥 Add this helper function (near UTIL)
+function formatRatingChange(match, playerName) {
+  let change;
+
+  if (match.p1 === playerName) {
+    change = match.p1Change;
+  } else if (match.p2 === playerName) {
+    change = match.p2Change;
+  }
+
+  if (change === undefined) return "";
+
+  const rounded = Math.round(change);
+  const sign = rounded > 0 ? "+" : "";
+
+  return ` (${sign}${rounded})`;
+}
+🔥 Update Match History UI
+
+Inside renderProfile() → Match History
+
+Replace this:
+${m.winner === name ? "Won vs" : "Lost to"} 
+${m.winner === name ? m.loser : m.winner}
+• ${qualityLabel(m.quality)} (${(m.quality * 100).toFixed(0)}%)
+With this:
+${m.winner === name ? "Won vs" : "Lost to"} 
+${m.winner === name ? m.loser : m.winner}
+${formatRatingChange(m, name)}
+• ${qualityLabel(m.quality)} (${(m.quality * 100).toFixed(0)}%)
+✅ Final Result
+
+Now your match history looks like:
+
+Season 2:
+Won vs Alex (+18)
+Lost to Maya (-11)
+Won vs Chris (+22)
+🧠 What You Just Unlocked
+
+This small change is actually huge:
+
+Before
+"Did I improve?"
+→ unclear
+After
++18 → clear progress
+-11 → small loss
++22 → big win
+🔥 This Is Where SPIN Gets Addictive
+
+Players start thinking:
+
+“I gained +25 from that guy…”
+“Why did I only get +6?”
+“That was a big upset”
+
+You're now creating:
+
+feedback loops → engagement → competition → rivalry
+🚀 Next Move (v0.25 suggestion)
+
+Now that you have rating deltas, the next killer feature is:
+
+👉 Upset Detection
+Won vs Alex (+42) 🔥 UPSET
+
+This uses your already-existing:
+
+calculateMatchQuality()
+
+If you want, next I can help you add:
+
+Upset highlighting
+Best win tracking
+Rival detection
+
+That’s when SPIN starts feeling like a real competitive ecosystem, not just a simulator.
+
 <!-- 
 FORMAT START
 
