@@ -73,7 +73,7 @@ function qualityLabel(q) {
   return "🚨 Mismatch";
 }
 
-/* ---------- UNCERTAINTY (v0.23) ---------- */
+/* ---------- UNCERTAINTY ---------- */
 
 function getEffectiveK(player) {
   const baseK = 32;
@@ -102,8 +102,13 @@ function simulateMatch() {
   const winnerK = getEffectiveK(winner);
   const loserK = getEffectiveK(loser);
 
+  // Apply rating updates
   winner.rating += winnerK * (1 - expectedScore(winner.rating, loser.rating));
   loser.rating += loserK * (0 - expectedScore(loser.rating, winner.rating));
+
+  // 🔥 NEW: rating deltas
+  const p1Change = p1.rating - r1Before;
+  const p2Change = p2.rating - r2Before;
 
   /* ---------- UNCERTAINTY DECAY ---------- */
   winner.uncertainty = Math.max(60, winner.uncertainty * 0.97);
@@ -121,6 +126,10 @@ function simulateMatch() {
     winner: winner.name,
     loser: loser.name,
     quality,
+    p1: p1.name,
+    p2: p2.name,
+    p1Change,
+    p2Change,
   });
 
   render();
@@ -170,7 +179,7 @@ function render() {
 
 function renderLeague() {
   app.innerHTML = `
-    <h1>🎾 SPIN v.0.23</h1>
+    <h1>🎾 SPIN v.0.24</h1>
 
     <section>
       <input id="playerInput" placeholder="Add player name" />
@@ -324,7 +333,8 @@ function renderProfile(name) {
               Season ${m.season}: 
               ${m.winner === name ? "Won vs" : "Lost to"} 
               ${m.winner === name ? m.loser : m.winner}
-              • ${qualityLabel(m.quality)} (${(m.quality * 100).toFixed(0)}%)
+              ${formatRatingChange(m, name)}
+            • ${qualityLabel(m.quality)} (${(m.quality * 100).toFixed(0)}%)
             </li>
           `,
             )
@@ -506,6 +516,23 @@ function shuffle(arr) {
     [arr[i], arr[j]] = [arr[j], arr[i]];
   }
   return arr;
+}
+
+function formatRatingChange(match, playerName) {
+  let change;
+
+  if (match.p1 === playerName) {
+    change = match.p1Change;
+  } else if (match.p2 === playerName) {
+    change = match.p2Change;
+  }
+
+  if (change === undefined) return "";
+
+  const rounded = Math.round(change);
+  const sign = rounded > 0 ? "+" : "";
+
+  return ` (${sign}${rounded})`;
 }
 
 /* ---------- MATCHMAKING (SPIN) ---------- */
