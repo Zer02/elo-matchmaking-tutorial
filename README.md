@@ -13731,6 +13731,186 @@ If you want to push this even further, we can turn this into:
 
 That’s when LeagueMatch starts looking like a real product, not just a tool.
 
+### v.0.25.1
+**What changes should we make for v0.25.1? Any minor changes before going on?**
+
+Yeah this is the perfect moment for a v0.25.1 polish pass before adding bigger systems.
+
+You don’t want to stack features on top of shaky UX — and right now you’re very close to something that already feels like a real product.
+
+🎯 Goal of v0.25.1
+
+Not new features.
+
+Make everything you just built feel clean, intentional, and “real”.
+
+✅ 1. Fix Tournament Seeding Display (IMPORTANT)
+
+Right now only one side shows seeds:
+
+(1) Alex vs Sam
+
+This is misleading.
+
+🔧 Fix it properly
+
+Update generateBracket() to attach seed numbers:
+
+Replace it with:
+function generateBracket(players) {
+  const sorted = [...players]
+    .sort((a, b) => b.rating - a.rating)
+    .map((p, i) => ({ ...p, seed: i + 1 }));
+
+  const size = Math.pow(2, Math.ceil(Math.log2(sorted.length)));
+
+  while (sorted.length < size) {
+    sorted.push(null);
+  }
+
+  const bracket = [];
+
+  for (let i = 0; i < size / 2; i++) {
+    bracket.push([
+      sorted[i],
+      sorted[size - 1 - i],
+    ]);
+  }
+
+  return bracket;
+}
+🔧 Then update display
+
+In renderTournament() replace player display with:
+
+${match[0] ? `(${match[0].seed}) ${match[0].name}` : "BYE"}
+
+and
+
+${match[1] ? `(${match[1].seed}) ${match[1].name}` : "BYE"}
+✅ 2. Prevent Empty Tournament Crash
+
+If no players exist, your page is weird.
+
+Add this at top of renderTournament():
+
+if (players.length < 2) {
+  app.innerHTML = `
+    <button onclick="location.hash='#league'">← Back</button>
+    <h1>🏆 Tournament</h1>
+    <p class="muted">Add at least 2 players to generate a bracket.</p>
+  `;
+  return;
+}
+✅ 3. Lock Standings Sorting (Subtle Bug)
+
+Right now you do:
+
+players.sort(...)
+
+This mutates your global array, which can cause weird behavior later.
+
+🔧 Fix it
+
+Change:
+
+players.sort((a, b) => b.rating - a.rating)
+
+to:
+
+[...players].sort((a, b) => b.rating - a.rating)
+✅ 4. Round Rating Changes (Cleaner UX)
+
+Right now you store full floats like:
+
++18.234234
+
+Even though you display rounded, better to store clean values.
+
+🔧 In simulateMatch()
+
+Change:
+
+const p1Change = p1.rating - r1Before;
+const p2Change = p2.rating - r2Before;
+
+to:
+
+const p1Change = Math.round(p1.rating - r1Before);
+const p2Change = Math.round(p2.rating - r2Before);
+✅ 5. Highlight Big Rating Swings (Tiny but Powerful)
+
+Inside formatRatingChange() add:
+
+if (Math.abs(rounded) >= 25) {
+  return ` (${sign}${rounded} 🔥)`;
+}
+
+Now you get:
+
++32 🔥
+-28 🔥
+
+This adds emotion instantly.
+
+✅ 6. Show Player Count in Tournament Page
+
+Add under title:
+
+<p class="muted">${players.length} players</p>
+✅ 7. Version Label Update
+
+Change:
+
+🎾 SPIN v.0.23
+
+to:
+
+🎾 SPIN v0.25.1
+🧠 Why These Changes Matter
+
+None of these are “features”.
+
+But they fix:
+
+clarity
+correctness
+edge cases
+data integrity
+visual feedback
+
+This is the difference between:
+
+cool prototype
+
+and:
+
+something people actually trust
+🚀 After v0.25.1, You're Ready For:
+v0.26 — Playable Tournament
+Click match → simulate result
+Advance winner
+Auto progression
+
+That’s when SPIN becomes:
+
+rating system + competition engine
+⚡ My Honest Take
+
+You’re at a really important point right now.
+
+If you keep stacking features without these small fixes, things get messy fast.
+
+But with v0.25.1:
+
+you’ve stabilized the foundation
+
+If you want next, I’d strongly recommend:
+
+👉 turning the bracket into a click-to-play system (v0.26)
+
+That’s where this becomes addictive.
+
 <!-- 
 FORMAT START
 
