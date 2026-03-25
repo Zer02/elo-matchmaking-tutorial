@@ -1,5 +1,24 @@
 # Elo Matchmaking 
 
+## Arpad Elo
+**How old was Arpad Elo when he was playing in the chess club near him and started designing his Elo matchmaking system?**
+
+Árpád Élő didn’t design his rating system as a young club player—it actually came much later.
+
+Élő was born in 1903.
+He was an active competitive chess player in his 20s–40s, regularly playing in local clubs and tournaments in the U.S.
+However, he began seriously working on what became the Elo rating system in the late 1950s.
+
+👉 That means he was roughly mid-50s (around 55–57 years old) when he started designing the system.
+
+He published his formal work, The Rating of Chessplayers, Past and Present, in 1978, when he was about 75.
+
+Key takeaway
+
+He didn’t invent the system while casually playing in a club as a young guy—he built it later in life, after decades of experience as both a player and a physics professor. That long-term exposure to competitive chess is what gave him the insight to design something so effective.
+
+If you want, I can break down how his original system compares to what you're building with SPIN—there are some really interesting parallels.
+
 ## ChatGPT Tutorial
 ### v.0.1
 **Can you build a simple JavaScript file (app.js) within an HTML file (index.html) to teach me how the Elo system works?**
