@@ -155,6 +155,156 @@ The thing you’re casually obsessed with might matter more than your official j
 
 And for you, that’s clearly matchmaking + competition systems.
 
+**Has there been any adjustment to his ELO matchmaking system that's open source in a successful manner since then, or are they all closed source, i.e., video game matchmaking or something like the USTA League or tennis rankings?**
+
+Short answer:
+👉 There have absolutely been successful improvements to Elo, and many of them are open source.
+👉 But the most widely used real-world systems (games, leagues, federations) are usually closed or partially hidden implementations.
+
+Let’s break it down cleanly—this is actually a huge insight for what you’re building.
+
+1. The “Elo family tree” (what came after Elo)
+1. Glicko rating system
+Adds uncertainty (RD) → how sure the system is about your rating
+Evolves into Glicko-2
+Used in:
+Chess servers
+Some esports platforms
+
+👉 Think: Elo + confidence level
+
+2. TrueSkill
+Built by Microsoft for Xbox Live
+Handles:
+Teams
+Multiplayer games
+Uses probability distributions (μ, σ) instead of a single number
+
+👉 This is what most modern matchmaking is conceptually based on.
+
+BUT:
+
+It’s not fully open (originally proprietary, patented)
+3. OpenSkill (THIS is the big one)
+Fully open-source alternative to TrueSkill
+Supports:
+Multiplayer
+Teams
+Complex match formats
+Used in real games like:
+Hunt: Showdown
+MultiVersus
+Designed to outperform Elo/Glicko in complex environments
+
+👉 This is basically:
+
+“What Elo would look like if it were invented today for online games”
+
+2. Open-source ecosystem (this part matters for you)
+
+There’s actually a huge open ecosystem:
+
+Libraries like:
+skillratings → supports Elo, Glicko, TrueSkill, etc.
+OpenSkill → modern matchmaking
+Elo-MMR, glicko2, etc.
+Experimental frameworks:
+riix → compare rating systems scientifically
+
+👉 So the math layer is very open.
+
+3. Where things become closed (important distinction)
+Closed / semi-closed systems:
+Video games (Riot, Valve, Blizzard, etc.)
+Sports leagues:
+USTA
+ATP/WTA rankings
+
+These systems:
+
+Often start from Elo-like ideas
+Then add:
+Hidden modifiers
+Engagement tuning (keep players playing)
+Anti-smurfing logic
+Queue optimization
+
+👉 So:
+
+The algorithm is inspired by open math
+The implementation is proprietary
+
+4. The real answer to your question
+Are there successful open-source successors?
+
+✅ YES
+
+Glicko
+OpenSkill
+Tons of libraries
+Actively used in real systems
+Are the biggest systems open?
+
+❌ NO
+
+The most impactful matchmaking systems are:
+Closed
+Tuned for business goals, not just fairness
+5. The deeper insight (this is the SPIN angle)
+
+Elo solved:
+
+“How do we rank players?”
+
+Modern systems solve:
+
+“How do we match players and control experience?”
+
+That includes:
+
+Retention
+Addiction loops
+Fairness vs frustration balance
+6. Where YOU fit (this is the opportunity)
+
+Right now, the landscape is:
+
+Layer	Status
+Math (Elo, Glicko, Bayesian models)	✅ Open
+Infrastructure (APIs, matchmaking queues)	⚠️ Mixed
+Real-world systems (games, leagues)	❌ Closed
+Your opening (this is big)
+
+What doesn’t exist yet:
+
+A fully open, transparent, player-owned matchmaking system
+
+That’s literally:
+
+Not Elo
+Not TrueSkill
+Not USTA
+
+That’s SPIN
+
+Final takeaway
+Elo → open, simple, foundational
+Modern improvements → open AND powerful
+Real-world usage → closed and controlled
+
+👉 Which means:
+
+The innovation frontier is no longer math
+It’s ownership + transparency + incentives
+
+If you want, I can break down exactly how SPIN could differentiate itself from:
+
+Elo (simple)
+TrueSkill (hidden)
+OpenSkill (math-only)
+
+That’s where your “Zero moment” really lives.
+
 ## ChatGPT Tutorial
 ### v.0.1
 **Can you build a simple JavaScript file (app.js) within an HTML file (index.html) to teach me how the Elo system works?**
